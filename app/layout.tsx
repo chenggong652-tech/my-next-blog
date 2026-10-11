@@ -1,4 +1,4 @@
-import { auth } from "@/auth/auth";
+import { auth } from "@/lib/auth";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";

@@ -1,4 +1,4 @@
-import { signOut } from "@/auth/auth";
+import { signOut } from "@/lib/auth";
 
 export default function LogoutPage() {
   return (

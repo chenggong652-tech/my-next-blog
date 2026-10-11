@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth/auth";
+import { auth } from "@/lib/auth";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -13,8 +13,10 @@ export default async function BlogPage() {
   const session = await auth();
 
   // 从数据库读取全部文章，按时间倒序，最新的在最上面
+  // include user：顺便查出每篇文章的作者昵称
   const blogList = await prisma.blog.findMany({
     orderBy: { createdAt: "desc" },
+    include: { user: true },
   });
 
   return (
@@ -49,7 +51,7 @@ export default async function BlogPage() {
                 <h2 style={{ margin: 0, color: "#2563eb" }}>{item.title}</h2>
               </Link>
               <p style={{ color: "#666", fontSize: "14px" }}>
-                {item.createdAt.toLocaleString()}
+                {item.user?.name || "匿名"} 发布于 {item.createdAt.toLocaleString()}
               </p>
             </div>
           ))

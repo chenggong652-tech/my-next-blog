@@ -7,6 +7,17 @@ import bcrypt from "bcryptjs";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
+  // ========== 新增：把用户id写进登录会话，后面权限判断要用 ==========
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) token.id = user.id;
+      return token;
+    },
+    async session({ session, token }) {
+      if (token.id) session.user.id = token.id as string;
+      return session;
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "Credentials",

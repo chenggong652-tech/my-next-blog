@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { updateBlog } from "../../actions";
-import { auth } from "@/auth/auth";
+import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
@@ -20,6 +20,17 @@ export default async function EditBlogPage({ params }: Props) {
 
   if (!blog) {
     return <div>文章不存在 <Link href="/blog">返回列表</Link></div>;
+  }
+
+  // 关键：只能编辑自己写的文章，别人的文章不让进编辑页
+  if (session?.user?.id !== blog.userId) {
+    return (
+      <main style={{ maxWidth: "800px", margin: "40px auto" }}>
+        <h1>无权编辑</h1>
+        <p>这篇文章不是你写的，不能编辑。</p>
+        <Link href={`/blog/${blog.id}`}>← 返回文章</Link>
+      </main>
+    );
   }
 
   return (

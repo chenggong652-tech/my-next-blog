@@ -3,7 +3,7 @@
 // Next.js 15 之后，params 变成了异步的，必须 await 才能拿到 id
 import { deleteBlog } from "../actions";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth/auth";
+import { auth } from "@/lib/auth";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -28,9 +28,10 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
   // 获取登录状态（没登录时 session 是 null）
   const session = await auth();
 
-  // 从我们自己的数据库读取这篇文章
+  // 从我们自己的数据库读取这篇文章（顺便查出作者信息）
   const blog = await prisma.blog.findUnique({
     where: { id },
+    include: { user: true },
   });
 
   // 如果文章不存在，显示提示页，而不是报错
@@ -47,10 +48,12 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
     <main style={{ maxWidth: "800px", margin: "40px auto" }}>
       <Link href="/blog">← 返回博客列表</Link>
       <h1>{blog.title}</h1>
-      <p style={{ color: "#666", fontSize: "14px" }}>{blog.createdAt.toLocaleString()}</p>
+      <p style={{ color: "#666", fontSize: "14px" }}>
+        {blog.user?.name || "匿名"} 发布于 {blog.createdAt.toLocaleString()}
+      </p>
       <p style={{ whiteSpace: "pre-wrap", lineHeight: "1.8" }}>{blog.content}</p>
-      {/* 只有登录了，才显示编辑、删除按钮 */}
-      {session && (
+      {/* 只有文章的作者本人，才显示编辑、删除按钮 */}
+      {session?.user?.id === blog.userId && (
         <div style={{ marginTop: "20px", display: "flex", gap: "12px" }}>
           <Link href={`/blog/${blog.id}/edit`}>
             <button style={{ padding: "6px 12px" }}>编辑文章</button>

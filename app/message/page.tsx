@@ -1,6 +1,7 @@
 import EditBtn from "./EditBtn";
 import { prisma } from '@/lib/prisma';
 import { addMessage, deleteMessage } from './actions';
+import { auth } from '@/lib/auth';
 import Link from 'next/link';
 
 const PAGE_SIZE = 2;
@@ -12,6 +13,9 @@ type Props = {
 };
 
 export default async function MessagePage({ searchParams }: Props) {
+  // 获取当前登录状态（没登录时 session 是 null）
+  const session = await auth();
+
   // Next15：searchParams是Promise，必须await
   const params = await searchParams;
   const pageStr = params.page;
@@ -36,17 +40,24 @@ export default async function MessagePage({ searchParams }: Props) {
       <h1>留言板【Server Actions版】</h1>
 
       {/* 表单：直接调用服务端addMessage，不需要fetch */}
-      <form action={addMessage} method="post" style={{ marginBottom: '20px' }}>
-        <div style={{ marginBottom: '10px' }}>
-          <label>昵称：</label>
-          <input name="name" style={{ padding: '6px', width: '200px' }} placeholder="输入你的昵称" required />
-        </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label>留言内容：</label>
-          <textarea name="content" rows={4} style={{ padding: '6px', width: '300px' }} placeholder="写下留言" required></textarea>
-        </div>
-        <button type="submit" style={{ padding:'6px 12px' }}>提交留言</button>
-      </form>
+      {/* 只有登录了才能留言，未登录显示提示 */}
+      {session ? (
+        <form action={addMessage} method="post" style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '10px' }}>
+            <label>昵称：</label>
+            <input name="name" style={{ padding: '6px', width: '200px' }} placeholder="输入你的昵称" required />
+          </div>
+          <div style={{ marginBottom: '10px' }}>
+            <label>留言内容：</label>
+            <textarea name="content" rows={4} style={{ padding: '6px', width: '300px' }} placeholder="写下留言" required></textarea>
+          </div>
+          <button type="submit" style={{ padding:'6px 12px' }}>提交留言</button>
+        </form>
+      ) : (
+        <p style={{ marginBottom: '20px', color: '#666' }}>
+          登录后才能留言，<Link href="/login">去登录 →</Link>
+        </p>
+      )}
 
       {/* 留言列表 */}
       <div>
@@ -62,12 +73,16 @@ export default async function MessagePage({ searchParams }: Props) {
                   <span style={{ fontSize:'12px', color:'#666' }}>{item.createdAt.toLocaleString()}</span>
                 </div>
                 <p>{item.content}</p>
-                {/* 删除按钮，调用deleteMessage */}
-                <EditBtn msg={item} />
-                <form action={deleteMessage} method="post">
-  <input type="hidden" name="msgId" value={item.id} />
-  <button type="submit" style={{ fontSize:'12px', color:'red' }}>删除</button>
-</form>
+                {/* 编辑、删除按钮：只有留言者本人才能看到 */}
+                {session?.user?.id === item.userId && (
+                  <>
+                    <EditBtn msg={item} />
+                    <form action={deleteMessage} method="post">
+                      <input type="hidden" name="msgId" value={item.id} />
+                      <button type="submit" style={{ fontSize:'12px', color:'red' }}>删除</button>
+                    </form>
+                  </>
+                )}
 
               </div>
             ))}

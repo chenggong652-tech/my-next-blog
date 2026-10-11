@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className="p-8">
       <h1>🎉 我的第一个Next.js页面</h1>
-      <p>零基础学习Next，跑通啦！</p>
+      <p>零基础学习Next,跑通啦!</p>
 
       {/* 第一张图片 demo.jpg */}
       <div className="mt-6">

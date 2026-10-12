@@ -26,6 +26,7 @@ model Message {
   createdAt DateTime @default(now())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes MessageLike[]
 }
 
 
@@ -33,6 +34,7 @@ model Blog {
   id        String   @id @default(cuid())
   title     String   // 文章标题
   content   String   // 文章正文
+  views     Int      @default(0) // 阅读量，默认为0
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   userId    String
@@ -54,6 +56,7 @@ model User {
   blogs         Blog[]
   messages      Message[]
   todos         Todo[]
+  messageLikes MessageLike[]
 }
 
 model Account {
@@ -89,4 +92,16 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+// 留言点赞中间表：记录谁给哪条留言点赞
+model MessageLike {
+  id        String   @id @default(cuid())
+  userId    String
+  messageId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, messageId]) // 联合唯一约束：同一个用户对同一条留言只能有一条记录，防止重复点赞
 }

@@ -1,0 +1,93 @@
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import Link from "next/link";
+
+// 获取用户信息 + 该用户所有博客 + 该用户所有留言
+async function getUserData(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      blogs: {
+        orderBy: { createdAt: "desc" },
+      },
+      messages: {
+        orderBy: { createdAt: "desc" },
+        take: 10, // 最多显示最近 10 条留言
+      },
+    },
+  });
+  return user;
+}
+
+export default async function UserPage({ params }: { params: Promise<{ userId: string }> }) {
+  // Next.js 15+ 的 params 是异步的，必须 await 解开才能拿到 userId
+  const { userId } = await params;
+
+  const session = await auth();
+  const userData = await getUserData(userId);
+
+  if (!userData) {
+    return <div style={{padding:"40px"}}>用户不存在</div>;
+  }
+
+  const isSelf = session?.user?.id === userData.id;
+
+  return (
+    <main style={{ maxWidth: "960px", margin: "0 auto", padding: "24px" }}>
+      <div style={{ borderBottom: "1px solid #ccc", paddingBottom: 16, marginBottom: 24 }}>
+        <h1 style={{ fontSize: "32px", margin: 0 }}>{userData.name ?? "匿名用户"}</h1>
+        <p style={{ color: "#666", marginTop: 8 }}>一共发布 {userData.blogs.length} 篇博客</p>
+        {isSelf && (
+          <Link href="/blog/new">
+            <button style={{ marginTop: 12, padding: "8px 16px", borderRadius: "8px", border: "1px solid #d1d5db", background: "#ffffff", cursor: "pointer" }}>管理我的文章</button>
+          </Link>
+        )}
+      </div>
+
+      <h2 style={{ fontSize: "20px" }}>文章列表</h2>
+      <div style={{ margin: "16px 0 32px 0" }}>
+        {userData.blogs.map((blog) => (
+          <Link href={`/blog/${blog.id}`} key={blog.id}>
+            <div
+              style={{
+                border: "1px solid #e5e7eb",
+                padding: 16,
+                marginBottom: 12,
+                borderRadius: 10,
+                background: "#fff",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              }}
+            >
+              <h3 style={{ margin: 0, color: "#2563eb" }}>{blog.title}</h3>
+              <p style={{ color: "#666", fontSize: "14px", marginTop: 8 }}>{blog.createdAt.toLocaleString()}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      <h2 style={{ fontSize: "20px" }}>TA的留言记录</h2>
+      <div style={{ margin: "16px 0" }}>
+        {userData.messages.length === 0 ? (
+          <p style={{ color: "#666" }}>TA还没有留言</p>
+        ) : (
+          userData.messages.map((msg) => (
+            <div
+              key={msg.id}
+              style={{
+                border: "1px solid #e5e7eb",
+                padding: 16,
+                marginBottom: 12,
+                borderRadius: 10,
+                background: "#fff",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              }}
+            >
+              <p style={{ fontSize: "13px", color: "#666", margin: 0 }}>{msg.createdAt.toLocaleString()}</p>
+              <p style={{ marginTop: 8 }}>{msg.content}</p>
+            </div>
+          ))
+        )}
+      </div>
+    </main>
+  );
+}

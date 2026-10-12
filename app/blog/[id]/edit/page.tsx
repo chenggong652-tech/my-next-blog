@@ -1,15 +1,16 @@
 import { prisma } from "@/lib/prisma";
-import { updateBlog } from "../../actions";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import EditBlogForm from "./EditBlogForm";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
+// 服务端组件：负责登录检查 + 归属检查，再把编辑表单交给客户端组件
 export default async function EditBlogPage({ params }: Props) {
-  // 未登录就强制跳转到登录页，不给看编辑表单
+  // 未登录就强制跳转到登录页
   const session = await auth();
   if (!session) {
     redirect("/login");
@@ -19,7 +20,11 @@ export default async function EditBlogPage({ params }: Props) {
   const blog = await prisma.blog.findUnique({ where: { id } });
 
   if (!blog) {
-    return <div>文章不存在 <Link href="/blog">返回列表</Link></div>;
+    return (
+      <main style={{ maxWidth: "800px", margin: "40px auto" }}>
+        <div>文章不存在 <Link href="/blog">返回列表</Link></div>
+      </main>
+    );
   }
 
   // 关键：只能编辑自己写的文章，别人的文章不让进编辑页
@@ -35,35 +40,19 @@ export default async function EditBlogPage({ params }: Props) {
 
   return (
     <main style={{ maxWidth: "800px", margin: "40px auto" }}>
-      <h1>编辑文章</h1>
-      <form action={updateBlog} style={{ display: "grid", gap: "12px" }}>
-        <input type="hidden" name="id" value={blog.id} />
-        <div>
-          <label>文章标题</label>
-          <input
-            name="title"
-            defaultValue={blog.title}
-            style={{ width: "100%", padding: "8px", marginTop: "4px" }}
-            required
-          />
-        </div>
-        <div>
-          <label>文章内容</label>
-          <textarea
-            name="content"
-            rows={10}
-            defaultValue={blog.content}
-            style={{ width: "100%", padding: "8px", marginTop: "4px" }}
-            required
-          />
-        </div>
-        <div style={{ display: "flex", gap: "12px" }}>
-          <button type="submit" style={{ padding: "8px 16px" }}>保存修改</button>
-          <Link href={`/blog/${blog.id}`}>
-            <button type="button" style={{ padding: "8px 16px" }}>取消</button>
-          </Link>
-        </div>
-      </form>
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #e5e7eb",
+          borderRadius: "12px",
+          padding: "32px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+        }}
+      >
+        <h1 style={{ margin: "0 0 24px" }}>编辑文章</h1>
+        {/* 把文章原始数据传给表单组件 */}
+        <EditBlogForm blogId={blog.id} blogTitle={blog.title} blogContent={blog.content} />
+      </div>
     </main>
   );
 }

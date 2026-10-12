@@ -25,24 +25,25 @@ export async function addMessage(formData: FormData) {
 // 删除留言（只能删自己发的）
 export async function deleteMessage(formData: FormData) {
   const session = await auth();
-  if (!session?.user?.id) return;
+  if (!session?.user?.id) return { success: false, msg: "请先登录" };
 
   const id = formData.get('msgId') as string;
-  if (!id) return;
+  if (!id) return { success: false, msg: "缺少留言编号" };
 
   // 先查找这条留言
   const targetMsg = await prisma.message.findUnique({
     where: { id },
   });
-  if (!targetMsg) return;
+  if (!targetMsg) return { success: false, msg: "留言不存在" };
 
   // 关键：只有留言者本人才能删
-  if (targetMsg.userId !== session.user.id) return;
+  if (targetMsg.userId !== session.user.id) return { success: false, msg: "不能删除别人的留言" };
 
   await prisma.message.delete({
     where: { id },
   });
   revalidatePath('/message');
+  return { success: true, msg: "删除成功" };
 }
 
 // 编辑更新留言（只能改自己发的）

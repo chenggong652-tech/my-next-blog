@@ -8,21 +8,36 @@ export const metadata: Metadata = {
   description: "查看全部博客文章",
 };
 
-export default async function BlogPage() {
-  // 获取登录状态（没登录时 session 是 null）
-  const session = await auth();
+// 每页展示多少篇
+const PAGE_SIZE = 3;
 
-  // 从数据库读取全部文章，按时间倒序，最新的在最上面
-  // include user：顺便查出每篇文章的作者昵称
+export default async function BlogPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const session = await auth();
+  const params = await searchParams;
+  // 获取当前页码，默认第1页
+  const currentPage = Number(params.page) || 1;
+  const skip = (currentPage - 1) * PAGE_SIZE;
+
+  // 查询当前页文章
   const blogList = await prisma.blog.findMany({
     orderBy: { createdAt: "desc" },
     include: { user: true },
+    skip: skip,
+    take: PAGE_SIZE,
   });
+
+  // 查询总共有多少篇文章，用来算总页数
+  const totalCount = await prisma.blog.count();
+  const totalPage = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
     <main style={{ maxWidth: "800px", margin: "40px auto" }}>
       <h1>博客文章列表</h1>
-      {/* 只有登录了，才显示新建、搜索按钮 */}
+
       {session && (
         <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
           <Link href="/blog/new">
@@ -33,6 +48,7 @@ export default async function BlogPage() {
           </Link>
         </div>
       )}
+
       <div>
         {blogList.length === 0 ? (
           <p>暂时还没有文章，点击上方按钮新建第一篇！</p>
@@ -41,22 +57,52 @@ export default async function BlogPage() {
             <div
               key={item.id}
               style={{
-                border: "1px solid #ccc",
+                border: "1px solid #e5e7eb",
                 padding: "16px",
                 marginBottom: "12px",
-                borderRadius: "6px",
+                borderRadius: "10px",
+                background: "#ffffff",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
               }}
             >
               <Link href={`/blog/${item.id}`}>
                 <h2 style={{ margin: 0, color: "#2563eb" }}>{item.title}</h2>
               </Link>
               <p style={{ color: "#666", fontSize: "14px" }}>
-                {item.user?.name || "匿名"} 发布于 {item.createdAt.toLocaleString()}
+                <Link href={`/profile/${item.userId}`} style={{ color: "#2563eb" }}>
+                  {item.user?.name || "匿名"}
+                </Link>
+                发布于 {item.createdAt.toLocaleString()}
               </p>
             </div>
           ))
         )}
       </div>
+
+      {/* 分页按钮区域 */}
+      {totalPage > 1 && (
+        <div style={{ display: "flex", gap: "12px", marginTop: "30px", alignItems: "center" }}>
+          {currentPage <= 1 ? (
+            <button disabled style={{ opacity:0.4,cursor:"not‑allowed" }}>上一页</button>
+          ) : (
+            <Link href={`/blog?page=${currentPage - 1}`}>
+              <button>上一页</button>
+            </Link>
+          )}
+
+          <span>
+            {currentPage} / {totalPage}
+          </span>
+
+          {currentPage >= totalPage ? (
+            <button disabled style={{ opacity:0.4,cursor:"not‑allowed" }}>下一页</button>
+          ) : (
+            <Link href={`/blog?page=${currentPage + 1}`}>
+              <button>下一页</button>
+            </Link>
+          )}
+        </div>
+      )}
     </main>
   );
 }

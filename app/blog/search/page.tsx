@@ -1,77 +1,93 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
-type Props = {
-  searchParams: Promise<{ q?: string }>;
-};
+export default async function BlogSearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ keyword?: string }>;
+}) {
+  // Next15：searchParams 是 Promise，必须 await 才能拿到 URL 上的参数
+  const params = await searchParams;
+  const keyword = params.keyword || "";
 
-type BlogItem = {
-  id: string;
-  title: string;
-  content: string;
-  createdAt: Date;
-};
-
-export default async function BlogSearchPage({ searchParams }: Props) {
-  const { q } = await searchParams;
-
-  let blogs: BlogItem[] = [];
-  // 如果有搜索关键词，去数据库模糊查找标题匹配的文章
-  if (q && q.trim() !== "") {
-    blogs = await prisma.blog.findMany({
-      where: {
-        title: {
-          contains: q,
+  // 查询：标题或内容里包含关键词的文章（模糊查询）
+  const results = keyword
+    ? await prisma.blog.findMany({
+        where: {
+          OR: [
+            { title: { contains: keyword } },
+            { content: { contains: keyword } },
+          ],
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-  }
+        orderBy: { createdAt: "desc" },
+        include: { user: true },
+      })
+    : [];
 
   return (
     <main style={{ maxWidth: "800px", margin: "40px auto" }}>
       <h1>博客搜索</h1>
-      {/* 搜索表单，提交后网址带上 ?q=关键词 */}
-      <form style={{ marginBottom: "30px", display: "flex", gap: "8px" }}>
+
+      {/* 搜索表单：提交后 URL 变成 /blog-search?keyword=xxx */}
+      <form action="/blog-search" method="GET" style={{ margin: "20px 0" }}>
         <input
-          name="q"
-          defaultValue={q}
-          placeholder="输入文章标题搜索"
-          style={{ flex: 1, padding: "8px" }}
+          name="keyword"
+          defaultValue={keyword}
+          placeholder="输入关键词搜索博客标题或内容"
+          style={{
+            padding: "8px",
+            width: "300px",
+            borderRadius: "8px",
+            border: "1px solid #ccc",
+          }}
         />
-        <button type="submit" style={{ padding: "8px 16px" }}>搜索</button>
+        <button
+          type="submit"
+          style={{
+            padding: "8px 16px",
+            marginLeft: 8,
+            borderRadius: "8px",
+            border: "1px solid #d1d5db",
+            background: "#ffffff",
+            cursor: "pointer",
+          }}
+        >
+          搜索
+        </button>
       </form>
 
-      {q ? (
-        <p>关键词：{q}，一共找到 {blogs.length} 篇文章</p>
-      ) : (
-        <p>请输入关键词搜索文章</p>
+      {/* 没输入关键词时的提示 */}
+      {!keyword && <p style={{ color: "#666" }}>输入关键词，搜索博客标题或内容</p>}
+
+      {/* 有关键词但没结果 */}
+      {keyword && results.length === 0 && (
+        <p style={{ color: "#666" }}>没有找到包含「{keyword}」的文章</p>
       )}
 
-      <div style={{ marginTop: "20px", display: "grid", gap: "12px" }}>
-        {blogs.map((item) => (
-          <Link
-            key={item.id}
-            href={`/blog/${item.id}`}
+      {/* 搜索结果列表 */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        {results.map((blog) => (
+          <div
+            key={blog.id}
             style={{
-              border: "1px solid #ddd",
-              padding: "16px",
-              borderRadius: "6px",
-              textDecoration: "none",
-              color: "#222",
+              border: "1px solid #e5e7eb",
+              padding: 16,
+              borderRadius: 10,
+              background: "#ffffff",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
             }}
           >
-            <h3 style={{ margin: 0 }}>{item.title}</h3>
-            <p style={{ color: "#666", fontSize: "14px" }}>
-              {item.createdAt.toLocaleString()}
+            <Link href={`/blog/${blog.id}`}>
+              <h3 style={{ margin: 0, color: "#2563eb" }}>{blog.title}</h3>
+            </Link>
+            <p style={{ fontSize: 13, color: "#666", marginTop: 6 }}>
+              <Link href={`/profile/${blog.userId}`} style={{ color: "#2563eb" }}>
+                {blog.user?.name || "匿名"}
+              </Link>
+              发布于 {blog.createdAt.toLocaleString()}
             </p>
-          </Link>
+          </div>
         ))}
-      </div>
-      <div style={{ marginTop: "30px" }}>
-        <Link href="/blog">← 返回博客列表</Link>
       </div>
     </main>
   );

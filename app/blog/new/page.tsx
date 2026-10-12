@@ -1,11 +1,12 @@
-import { createBlog } from "../actions";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import NewBlogForm from "./NewBlogForm";
 
 export const metadata = {
   title: "新建文章",
 };
 
+// 服务端组件：负责登录检查（未登录不让进），再把表单交给客户端组件
 export default async function NewBlogPage() {
   // 未登录就强制跳转到登录页，不给看新建表单
   const session = await auth();
@@ -15,29 +16,18 @@ export default async function NewBlogPage() {
 
   return (
     <main style={{ maxWidth: "800px", margin: "40px auto" }}>
-      <h1>新建文章</h1>
-      <form action={createBlog} style={{ display: "grid", gap: "12px" }}>
-        <div>
-          <label>文章标题</label>
-          <input
-            name="title"
-            style={{ width: "100%", padding: "8px", marginTop: "4px" }}
-            required
-          />
-        </div>
-        <div>
-          <label>文章内容</label>
-          <textarea
-            name="content"
-            rows={10}
-            style={{ width: "100%", padding: "8px", marginTop: "4px" }}
-            required
-          />
-        </div>
-        <button type="submit" style={{ width: "fit-content", padding: "8px 16px" }}>
-          提交发布
-        </button>
-      </form>
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #e5e7eb",
+          borderRadius: "12px",
+          padding: "32px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+        }}
+      >
+        <h1 style={{ margin: "0 0 24px" }}>新建文章</h1>
+        <NewBlogForm />
+      </div>
     </main>
   );
 }

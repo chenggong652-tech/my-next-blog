@@ -50,7 +50,7 @@ export default async function BlogPage({
             style={{
               padding: "6px 14px",
               borderRadius: "999px",
-              border: "1px solid #e5e7eb",
+              border: "1px solid var(--card-border)",
               background: currentCategory === cat ? "#2563eb" : "#ffffff",
               color: currentCategory === cat ? "#ffffff" : "#333",
               textDecoration: "none",
@@ -81,16 +81,16 @@ export default async function BlogPage({
             <div
               key={item.id}
               style={{
-                border: "1px solid #e5e7eb",
+                border: "1px solid var(--card-border)",
                 padding: "16px",
                 marginBottom: "12px",
                 borderRadius: "10px",
-                background: "#ffffff",
+                background: "var(--card-bg)",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
               }}
             >
               <Link href={`/blog/${item.id}`}>
-                <h2 style={{ margin: 0, color: "#2563eb" }}>{item.title}</h2>
+                <h2 style={{ margin: 0, color: "var(--link)" }}>{item.title}</h2>
               </Link>
               <span
                 style={{
@@ -105,8 +105,8 @@ export default async function BlogPage({
               >
                 {item.category}
               </span>
-              <p style={{ color: "#666", fontSize: "14px" }}>
-                <Link href={`/profile/${item.userId}`} style={{ color: "#2563eb" }}>
+              <p style={{ color: "var(--text-light)", fontSize: "14px" }}>
+                <Link href={`/profile/${item.userId}`} style={{ color: "var(--link)" }}>
                   {item.user?.name || "匿名"}
                 </Link>
                 发布于 {item.createdAt.toLocaleString()}

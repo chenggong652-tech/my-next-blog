@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/app/components/Toast";
+import ThemeToggle from "@/app/components/ThemeToggle";
 
 const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
@@ -20,11 +21,11 @@ export default async function RootLayout({
   const session = await auth();
   return (
     <html lang="zh-CN">
-      {/* body：控制全站背景为浅灰白渐变 */}
+      {/* body：背景去"颜色仓库"取货（白天渐变 / 黑夜深色） */}
       <body
         className={inter.className}
         style={{
-          background: "linear-gradient(180deg, #f7f8fa 0%, #eef1f5 100%)",
+          background: "var(--bg)",
           minHeight: "100vh",
           margin: 0,
         }}
@@ -33,8 +34,8 @@ export default async function RootLayout({
         <nav
           className="p-4 flex gap-6 items-center"
           style={{
-            background: "#ffffff",
-            borderBottom: "1px solid #e5e7eb",
+            background: "var(--nav-bg)",
+            borderBottom: "1px solid var(--nav-border)",
             boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
           }}
         >
@@ -50,7 +51,8 @@ export default async function RootLayout({
           <Link href="/todo" className="text-blue-600">待办列表</Link>
           <Link href="/message" className="text-blue-600">留言板</Link>
           {/* 右侧：根据登录状态显示 登录 或 退出 */}
-          <div style={{ marginLeft: "auto" }}>
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "12px" }}>
+            <ThemeToggle />
             {session ? (
               <Link href="/logout" className="text-red-600">🚪退出登录</Link>
             ) : (

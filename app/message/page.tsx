@@ -44,8 +44,8 @@ export default async function MessagePage({
       {session ? (
         <div
           style={{
-            background: "#ffffff",
-            border: "1px solid #e5e7eb",
+            background: "var(--card-bg)",
+            border: "1px solid var(--card-border)",
             borderRadius: "12px",
             padding: "20px",
             margin: "20px 0",
@@ -95,7 +95,7 @@ export default async function MessagePage({
           </form>
         </div>
       ) : (
-        <p style={{ color: "#666", margin: "20px 0" }}>登录之后才可以发布留言</p>
+        <p style={{ color: "var(--text-light)", margin: "20px 0" }}>登录之后才可以发布留言</p>
       )}
 
       {/* 留言列表 */}
@@ -110,19 +110,19 @@ export default async function MessagePage({
               <div
                 key={msg.id}
                 style={{
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--card-border)",
                   padding: 14,
                   marginBottom: 12,
                   borderRadius: 10,
-                  background: "#ffffff",
+                  background: "var(--card-bg)",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
                 }}
               >
                 <p style={{ margin: 0 }}>
-                  <Link href={`/profile/${msg.userId}`} style={{ color: "#2563eb" }}>
+                  <Link href={`/profile/${msg.userId}`} style={{ color: "var(--link)" }}>
                     {msg.user?.name || "匿名"}
                   </Link>
-                  <span style={{ fontSize: 12, color: "#777", marginLeft: 10 }}>
+                  <span style={{ fontSize: 12, color: "var(--text-light)", marginLeft: 10 }}>
                     {msg.createdAt.toLocaleString()}
                   </span>
                 </p>

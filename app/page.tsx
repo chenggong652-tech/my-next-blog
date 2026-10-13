@@ -8,6 +8,13 @@ export default async function HomePage() {
     take: 3,
     include: { user: true },
   });
+  
+  // 取阅读量最高的3篇文章（热门榜）
+  const hotBlogs = await prisma.blog.findMany({
+    orderBy: { views: "desc" },   // 按阅读量从高到低排
+    take: 3,                      // 只取前3名
+    include: { user: true },      // 顺便查出作者
+  });
 
   // 取最新3条留言
   const latestMessages = await prisma.message.findMany({
@@ -20,7 +27,7 @@ export default async function HomePage() {
     <main style={{ maxWidth: "900px", margin: "40px auto", padding: "0 20px" }}>
       <div style={{ textAlign: "center", marginBottom: "50px" }}>
         <h1 style={{ fontSize: "36px" }}>我的简易博客网站</h1>
-        <p style={{ color: "#666", marginTop: 10 }}>分享文字，互相留言交流</p>
+        <p style={{ color: "var(--text-light)", marginTop: 10 }}>分享文字，互相留言交流</p>
         <div style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: 24 }}>
           <Link href="/blog">
             <button style={{ padding: "10px 20px", fontSize: 16, borderRadius:"8px" }}>进入博客列表</button>
@@ -31,30 +38,30 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "40px" }}>
         {/* 📝最新博客区域，下面循环出来的每一个div就是【博客卡片】 */}
         <div>
           <h2 style={{ borderBottom: "1px solid #ccc", paddingBottom: 8 }}>📝 最新博客</h2>
           <div style={{ marginTop: 16 }}>
             {latestBlogs.length === 0 ? (
-              <p style={{ color: "#666" }}>暂无博客文章</p>
+              <p style={{ color: "var(--text-light)" }}>暂无博客文章</p>
             ) : (
               latestBlogs.map((blog) => (
                 <div
                   key={blog.id}
                   style={{
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--card-border)",
                     padding: 12,
                     marginBottom: 12,
                     borderRadius: 10,
-                    background: "#ffffff",
+                    background: "var(--card-bg)",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
                   }}
                 >
                   <Link href={`/blog/${blog.id}`}>
-                    <h3 style={{ margin: 0, color: "#2563eb" }}>{blog.title}</h3>
+                    <h3 style={{ margin: 0, color: "var(--link)" }}>{blog.title}</h3>
                   </Link>
-                  <p style={{ fontSize: 13, color: "#666", marginTop:6 }}>
+                  <p style={{ fontSize: 13, color: "var(--text-light)", marginTop:6 }}>
                     <Link href={`/profile/${blog.userId}`} style={{color:"#2563eb"}}>
                       {blog.user?.name || "匿名"}
                     </Link>
@@ -74,17 +81,17 @@ export default async function HomePage() {
           <h2 style={{ borderBottom: "1px solid #ccc", paddingBottom: 8 }}>💬 最新留言</h2>
           <div style={{ marginTop: 16 }}>
             {latestMessages.length === 0 ? (
-              <p style={{ color: "#666" }}>暂无留言</p>
+              <p style={{ color: "var(--text-light)" }}>暂无留言</p>
             ) : (
               latestMessages.map((msg) => (
                 <div
                   key={msg.id}
                   style={{
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--card-border)",
                     padding: 12,
                     marginBottom: 12,
                     borderRadius: 10,
-                    background: "#ffffff",
+                    background: "var(--card-bg)",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
                   }}
                 >
@@ -101,6 +108,40 @@ export default async function HomePage() {
           </div>
           <div style={{ marginTop:12 }}>
             <Link href="/message" style={{color:"#2563eb"}}>查看全部留言 →</Link>
+          </div>
+        </div>
+
+        {/* 🔥热门文章区域：按阅读量排行 */}
+        <div>
+          <h2 style={{ borderBottom: "1px solid #ccc", paddingBottom: 8 }}>🔥 热门文章</h2>
+          <div style={{ marginTop: 16 }}>
+            {hotBlogs.length === 0 ? (
+              <p style={{ color: "var(--text-light)" }}>暂无文章</p>
+            ) : (
+              hotBlogs.map((blog) => (
+                <div
+                  key={blog.id}
+                  style={{
+                    border: "1px solid var(--card-border)",
+                    padding: 12,
+                    marginBottom: 12,
+                    borderRadius: 10,
+                    background: "var(--card-bg)",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                  }}
+                >
+                  <Link href={`/blog/${blog.id}`}>
+                    <h3 style={{ margin: 0, color: "var(--link)" }}>{blog.title}</h3>
+                  </Link>
+                  <p style={{ fontSize: 13, color: "var(--text-light)", marginTop: 6 }}>
+                    <Link href={`/profile/${blog.userId}`} style={{ color: "var(--link)" }}>
+                      {blog.user?.name || "匿名"}
+                    </Link>
+                    &nbsp;·&nbsp;👀 {blog.views} 次阅读
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

@@ -68,3 +68,24 @@ export async function updateMessage(id: string, content: string) {
 
   revalidatePath('/message');
 }
+
+// 添加回复（必须登录，回复挂在某条留言下面）
+export async function addReply(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, msg: "请先登录" };
+
+  const messageId = formData.get("messageId") as string;
+  const content = formData.get("content") as string;
+  if (!messageId || !content.trim()) return { success: false, msg: "回复内容不能为空" };
+
+  await prisma.reply.create({
+    data: {
+      content,
+      messageId,
+      userId: session.user.id,
+    },
+  });
+  revalidatePath("/message");
+  return { success: true, msg: "回复成功" };
+}
+

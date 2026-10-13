@@ -7,6 +7,7 @@ import Link from "next/link";
 import { addMessage } from "./actions";
 import LikeBtn from "./LikeBtn";
 import DeleteBtn from "./DeleteBtn";
+import ReplyBox from "@/app/components/ReplyBox";
 
 // 每页显示 5 条
 const PAGE_SIZE = 5;
@@ -27,7 +28,11 @@ export default async function MessagePage({
     prisma.message.count(),
     prisma.message.findMany({
       orderBy: { createdAt: "desc" },
-      include: { user: true, likes: true },
+      include: {
+        user: true,
+        likes: true,
+        replies: { include: { user: true }, orderBy: { createdAt: "asc" } },
+      },
       skip,
       take: PAGE_SIZE,
     }),
@@ -127,9 +132,41 @@ export default async function MessagePage({
                   </span>
                 </p>
                 <p style={{ marginTop: 8 }}>{msg.content}</p>
+                                {/* 回复列表：这条留言下面的所有回复 */}
+                                {msg.replies.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      background: "rgba(0,0,0,0.03)",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                    }}
+                  >
+                    {msg.replies.map((rep) => (
+                      <div
+                        key={rep.id}
+                        style={{
+                          fontSize: 13,
+                          padding: "4px 0",
+                          borderBottom: "1px solid rgba(0,0,0,0.06)",
+                        }}
+                      >
+                        <span style={{ color: "var(--link)", fontWeight: 600 }}>
+                          {rep.user?.name || "匿名"}
+                        </span>
+                        <span style={{ color: "var(--text-light)", fontSize: 12, marginLeft: 8 }}>
+                          {rep.createdAt.toLocaleString()}
+                        </span>
+                        <div style={{ marginTop: 2 }}>{rep.content}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div style={{ display: "flex", gap: "16px", alignItems: "center", marginTop: 10 }}>
                   {/* 点赞按钮（客户端组件，点一下即时变化） */}
+                                    {/* 回复按钮：登录了就能用（放在"只能自己编辑删除"的外面） */}
+                                    {session && <ReplyBox messageId={msg.id} />}
                   <LikeBtn
                     messageId={msg.id}
                     likeCount={msg.likes.length}

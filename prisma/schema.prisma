@@ -27,6 +27,7 @@ model Message {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   likes MessageLike[]
+  replies Reply[]
 }
 
 
@@ -58,6 +59,7 @@ model User {
   messages      Message[]
   todos         Todo[]
   messageLikes MessageLike[]
+  replies Reply[]
 }
 
 model Account {
@@ -105,4 +107,16 @@ model MessageLike {
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([userId, messageId]) // 联合唯一约束：同一个用户对同一条留言只能有一条记录，防止重复点赞
+}
+
+// 留言回复表：一条留言可以有多条回复
+model Reply {
+  id        String   @id @default(cuid())
+  content   String   // 回复内容
+  createdAt DateTime @default(now())
+  messageId String   // 这条回复属于哪条留言
+  userId    String   // 谁回复的
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }

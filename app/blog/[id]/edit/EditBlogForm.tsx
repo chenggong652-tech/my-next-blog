@@ -69,7 +69,7 @@ export default function EditBlogForm({
         </select>
       </div>
       <div>
-        <label style={{ fontWeight: "bold" }}>文章内容</label>
+      <label style={{ fontWeight: "bold" }}>文章内容（支持 Markdown：`#`标题、`**`加粗、`-`列表）</label>
         <textarea
           name="content"
           rows={10}

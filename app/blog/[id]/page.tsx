@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import type { Metadata } from "next";
+import ReactMarkdown from "react-markdown";
 
 // 根据文章内容，动态生成网页标题
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -53,40 +54,42 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
     <main style={{ maxWidth: "800px", margin: "40px auto" }}>
       <div
         style={{
-          background: "#ffffff",
-          border: "1px solid #e5e7eb",
+          background: "var(--card-bg)",
+          border: "1px solid var(--card-border)",
           borderRadius: "12px",
           padding: "32px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
         }}
       >
-        <Link href="/blog" style={{ fontSize: 14, color: "#666" }}>
+        <Link href="/blog" style={{ fontSize: 14, color: "var(--text-light)" }}>
           ← 返回博客列表
         </Link>
 
         <h1 style={{ margin: "16px 0 8px", fontSize: "32px" }}>{blog.title}</h1>
 
         {/* 作者 + 发布时间 + 阅读量 */}
-        <p style={{ color: "#666", fontSize: "14px" }}>
-          <Link href={`/profile/${blog.userId}`} style={{ color: "#2563eb" }}>
+        <p style={{ color: "var(--text-light)", fontSize: "14px" }}>
+          <Link href={`/profile/${blog.userId}`} style={{ color: "var(--link)" }}>
             {blog.user?.name || "匿名"}
           </Link>
           发布于 {blog.createdAt.toLocaleString()}
           <span style={{ marginLeft: 16 }}>📖 阅读量：{blog.views}</span>
         </p>
 
-        {/* 文章正文 */}
+        {/* 文章正文：交给 ReactMarkdown 渲染，支持 Markdown 语法 */}
         <div
+          className="md-body"
           style={{
             marginTop: "20px",
             paddingTop: "20px",
-            borderTop: "1px solid #e5e7eb",
+            borderTop: "1px solid var(--card-border)",
             lineHeight: "1.8",
-            whiteSpace: "pre-wrap",
+            color: "var(--text)",
           }}
         >
-          {blog.content}
+          <ReactMarkdown>{blog.content}</ReactMarkdown>
         </div>
+
 
         {/* 只有文章的作者本人，才显示编辑、删除按钮 */}
         {session?.user?.id === blog.userId && (

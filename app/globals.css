@@ -37,3 +37,35 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* 文章 Markdown 排版样式：只对带 md-body 名牌的区域生效 */
+.md-body h1 { font-size: 26px; margin: 24px 0 12px; }
+.md-body h2 { font-size: 22px; margin: 20px 0 10px; }
+.md-body h3 { font-size: 18px; margin: 16px 0 8px; }
+.md-body p { margin: 12px 0; }
+.md-body strong { font-weight: 700; }
+.md-body ul, .md-body ol { padding-left: 24px; margin: 12px 0; }
+.md-body li { margin: 4px 0; }
+.md-body code {
+  background: var(--card-border);
+  color: var(--text);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.md-body pre {
+  background: #1f2937;
+  color: #f3f4f6;
+  padding: 14px;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.md-body pre code { background: transparent; color: inherit; padding: 0; }
+.md-body blockquote {
+  border-left: 4px solid var(--card-border);
+  padding-left: 14px;
+  color: var(--text-light);
+  margin: 12px 0;
+}
+.md-body a { color: var(--link); }
+.md-body hr { border: none; border-top: 1px solid var(--card-border); margin: 20px 0; }
+

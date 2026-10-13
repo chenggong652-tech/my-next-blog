@@ -42,8 +42,8 @@ export default async function EditBlogPage({ params }: Props) {
     <main style={{ maxWidth: "800px", margin: "40px auto" }}>
       <div
         style={{
-          background: "#ffffff",
-          border: "1px solid #e5e7eb",
+          background: "var(--card-bg)",
+          border: "1px solid var(--card-border)",
           borderRadius: "12px",
           padding: "32px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.04)",

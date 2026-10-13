@@ -37,6 +37,7 @@ model Blog {
   content   String   // 文章正文
   views     Int      @default(0) // 阅读量，默认为0
   category  String   @default("未分类") // 文章分类，默认"未分类"
+  pinned    Boolean  @default(false) // 是否置顶：true=置顶
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   userId    String

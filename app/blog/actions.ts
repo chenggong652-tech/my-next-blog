@@ -55,7 +55,7 @@ export async function updateBlog(
   const title = (formData.get("title") as string) || "";
   const content = (formData.get("content") as string) || "";
   const category = (formData.get("category") as string) || "未分类";
-
+  const pinned = formData.get("pinned") === "on";
 
   if (!title.trim()) return { error: "标题不能为空" };
   if (!content.trim()) return { error: "内容不能为空" };
@@ -71,7 +71,7 @@ export async function updateBlog(
 
   await prisma.blog.update({
     where: { id },
-    data: { title: title.trim(), content: content.trim(), category: category },
+    data: { title: title.trim(), content: content.trim(), category: category, pinned },
   });
   revalidatePath("/blog");
   revalidatePath(`/blog/${id}`);

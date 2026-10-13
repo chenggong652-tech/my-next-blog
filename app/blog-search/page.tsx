@@ -17,6 +17,7 @@ export default async function BlogSearchPage({
           OR: [
             { title: { contains: keyword } },
             { content: { contains: keyword } },
+            { category: { contains: keyword } },
           ],
         },
         orderBy: { createdAt: "desc" },
@@ -48,7 +49,7 @@ export default async function BlogSearchPage({
             marginLeft: 8,
             borderRadius: "8px",
             border: "1px solid #d1d5db",
-            background: "#ffffff",
+            background: "var(--card-bg)",
             cursor: "pointer",
           }}
         >
@@ -57,11 +58,11 @@ export default async function BlogSearchPage({
       </form>
 
       {/* 没输入关键词时的提示 */}
-      {!keyword && <p style={{ color: "#666" }}>输入关键词，搜索博客标题或内容</p>}
+      {!keyword && <p style={{ color: "var(--text-light)" }}>输入关键词，搜索博客标题或内容</p>}
 
       {/* 有关键词但没结果 */}
       {keyword && results.length === 0 && (
-        <p style={{ color: "#666" }}>没有找到包含「{keyword}」的文章</p>
+        <p style={{ color: "var(--text-light)" }}>没有找到包含「{keyword}」的文章</p>
       )}
 
       {/* 搜索结果列表 */}
@@ -70,18 +71,31 @@ export default async function BlogSearchPage({
           <div
             key={blog.id}
             style={{
-              border: "1px solid #e5e7eb",
+              border: "1px solid var(--card-border)",
               padding: 16,
               borderRadius: 10,
-              background: "#ffffff",
+              background: "var(--card-bg)",
               boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
             }}
           >
-            <Link href={`/blog/${blog.id}`}>
-              <h3 style={{ margin: 0, color: "#2563eb" }}>{blog.title}</h3>
+                        <Link href={`/blog/${blog.id}`}>
+              <h3 style={{ margin: 0, color: "var(--link)" }}>{blog.title}</h3>
             </Link>
-            <p style={{ fontSize: 13, color: "#666", marginTop: 6 }}>
-              <Link href={`/profile/${blog.userId}`} style={{ color: "#2563eb" }}>
+            <span
+              style={{
+                display: "inline-block",
+                padding: "2px 10px",
+                borderRadius: "999px",
+                fontSize: "12px",
+                background: "#eef2ff",
+                color: "#4338ca",
+                marginBottom: "8px",
+              }}
+            >
+              {blog.category}
+            </span>
+            <p style={{ fontSize: 13, color: "var(--text-light)", marginTop: 6 }}>
+              <Link href={`/profile/${blog.userId}`} style={{ color: "var(--link)" }}>
                 {blog.user?.name || "匿名"}
               </Link>
               发布于 {blog.createdAt.toLocaleString()}

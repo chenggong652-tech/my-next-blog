@@ -26,7 +26,7 @@ export default async function BlogPage({
   // 查询当前页文章
   const blogList = await prisma.blog.findMany({
     where: currentCategory === "全部" ? {} : { category: currentCategory },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
     include: { user: true },
     skip: skip,
     take: PAGE_SIZE,
@@ -90,7 +90,7 @@ export default async function BlogPage({
               }}
             >
               <Link href={`/blog/${item.id}`}>
-                <h2 style={{ margin: 0, color: "var(--link)" }}>{item.title}</h2>
+              <h2 style={{ margin: 0, color: "var(--link)" }}>{item.pinned ? "📌 " : ""}{item.title}</h2>
               </Link>
               <span
                 style={{

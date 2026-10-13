@@ -12,11 +12,13 @@ export default function EditBlogForm({
   blogTitle,
   blogContent,
   blogCategory,
+  blogPinned,
 }: {
   blogId: string;
   blogTitle: string;
   blogContent: string;
   blogCategory: string;
+  blogPinned: boolean;
 }) {
   // 和新建表单一样，用 useActionState 接收校验错误提示（先声明 state）
   const [state, formAction] = useActionState(updateBlog, {});
@@ -67,6 +69,12 @@ export default function EditBlogForm({
           <option>生活随笔</option>
           <option>技术教程</option>
         </select>
+        <div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: "bold" }}>
+          <input type="checkbox" name="pinned" defaultChecked={blogPinned} />
+          置顶这篇文章（列表最前面）
+        </label>
+      </div>
       </div>
       <div>
       <label style={{ fontWeight: "bold" }}>文章内容（支持 Markdown：`#`标题、`**`加粗、`-`列表）</label>

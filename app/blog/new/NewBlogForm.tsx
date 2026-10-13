@@ -35,6 +35,46 @@ useEffect(() => {
         />
       </div>
       <div>
+        <label style={{ fontWeight: "bold" }}>文章分类</label>
+        <select
+          name="category"
+          defaultValue="未分类"
+          style={{
+            width: "100%",
+            padding: "10px",
+            marginTop: "6px",
+            borderRadius: "8px",
+            border: "1px solid #d1d5db",
+            fontSize: "16px",
+          }}
+        >
+          <option>未分类</option>
+          <option>学习笔记</option>
+          <option>生活随笔</option>
+          <option>技术教程</option>
+        </select>
+      </div>
+      <div>
+        <label style={{ fontWeight: "bold" }}>文章分类</label>
+        <select
+          name="category"
+          defaultValue="未分类"
+          style={{
+            width: "100%",
+            padding: "10px",
+            marginTop: "6px",
+            borderRadius: "8px",
+            border: "1px solid #d1d5db",
+            fontSize: "16px",
+          }}
+        >
+          <option>未分类</option>
+          <option>学习笔记</option>
+          <option>生活随笔</option>
+          <option>技术教程</option>
+        </select>
+      </div>
+      <div>
         <label style={{ fontWeight: "bold" }}>文章内容</label>
         <textarea
           name="content"

@@ -35,6 +35,7 @@ model Blog {
   title     String   // 文章标题
   content   String   // 文章正文
   views     Int      @default(0) // 阅读量，默认为0
+  category  String   @default("未分类") // 文章分类，默认"未分类"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   userId    String

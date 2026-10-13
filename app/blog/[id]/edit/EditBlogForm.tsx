@@ -11,10 +11,12 @@ export default function EditBlogForm({
   blogId,
   blogTitle,
   blogContent,
+  blogCategory,
 }: {
   blogId: string;
   blogTitle: string;
   blogContent: string;
+  blogCategory: string;
 }) {
   // 和新建表单一样，用 useActionState 接收校验错误提示（先声明 state）
   const [state, formAction] = useActionState(updateBlog, {});
@@ -45,6 +47,26 @@ export default function EditBlogForm({
             fontSize: "16px",
           }}
         />
+      </div>
+      <div>
+        <label style={{ fontWeight: "bold" }}>文章分类</label>
+        <select
+          name="category"
+          defaultValue={blogCategory}
+          style={{
+            width: "100%",
+            padding: "10px",
+            marginTop: "6px",
+            borderRadius: "8px",
+            border: "1px solid #d1d5db",
+            fontSize: "16px",
+          }}
+        >
+          <option>未分类</option>
+          <option>学习笔记</option>
+          <option>生活随笔</option>
+          <option>技术教程</option>
+        </select>
       </div>
       <div>
         <label style={{ fontWeight: "bold" }}>文章内容</label>

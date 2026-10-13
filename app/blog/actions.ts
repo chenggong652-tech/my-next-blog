@@ -21,6 +21,8 @@ export async function createBlog(
 
   const title = (formData.get("title") as string) || "";
   const content = (formData.get("content") as string) || "";
+  const category = (formData.get("category") as string) || "未分类";
+
 
   // 校验规则（关键教学点）：哪里不对，就把错误信息返回给页面显示
   if (!title.trim()) return { error: "标题不能为空" };
@@ -32,6 +34,7 @@ export async function createBlog(
     data: {
       title: title.trim(),
       content: content.trim(),
+      category: category,
       userId: session.user.id, // 记录作者是谁
     },
   });
@@ -51,6 +54,8 @@ export async function updateBlog(
   const id = (formData.get("id") as string) || "";
   const title = (formData.get("title") as string) || "";
   const content = (formData.get("content") as string) || "";
+  const category = (formData.get("category") as string) || "未分类";
+
 
   if (!title.trim()) return { error: "标题不能为空" };
   if (!content.trim()) return { error: "内容不能为空" };
@@ -66,7 +71,7 @@ export async function updateBlog(
 
   await prisma.blog.update({
     where: { id },
-    data: { title: title.trim(), content: content.trim() },
+    data: { title: title.trim(), content: content.trim(), category: category },
   });
   revalidatePath("/blog");
   revalidatePath(`/blog/${id}`);

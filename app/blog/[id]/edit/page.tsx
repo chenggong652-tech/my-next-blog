@@ -51,7 +51,12 @@ export default async function EditBlogPage({ params }: Props) {
       >
         <h1 style={{ margin: "0 0 24px" }}>编辑文章</h1>
         {/* 把文章原始数据传给表单组件 */}
-        <EditBlogForm blogId={blog.id} blogTitle={blog.title} blogContent={blog.content} />
+        <EditBlogForm
+  blogId={blog.id}
+  blogTitle={blog.title}
+  blogContent={blog.content}
+  blogCategory={blog.category}
+/>
       </div>
     </main>
   );

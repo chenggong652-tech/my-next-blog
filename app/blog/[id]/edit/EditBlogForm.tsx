@@ -13,12 +13,14 @@ export default function EditBlogForm({
   blogContent,
   blogCategory,
   blogPinned,
+  blogCover,
 }: {
   blogId: string;
   blogTitle: string;
   blogContent: string;
   blogCategory: string;
   blogPinned: boolean;
+  blogCover: string;
 }) {
   // 和新建表单一样，用 useActionState 接收校验错误提示（先声明 state）
   const [state, formAction] = useActionState(updateBlog, {});
@@ -40,6 +42,22 @@ export default function EditBlogForm({
         <input
           name="title"
           defaultValue={blogTitle}
+          style={{
+            width: "100%",
+            padding: "10px",
+            marginTop: "6px",
+            borderRadius: "8px",
+            border: "1px solid #d1d5db",
+            fontSize: "16px",
+          }}
+        />
+      </div>
+      <div>
+        <label style={{ fontWeight: "bold" }}>封面图地址（可选）</label>
+        <input
+          name="coverImage"
+          defaultValue={blogCover}
+          placeholder="粘贴图片网址，如 https://... 不填就没有封面"
           style={{
             width: "100%",
             padding: "10px",

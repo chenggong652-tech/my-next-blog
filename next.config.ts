@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "picsum.photos"
+        hostname: "**" // 允许所有 https 图片域名（学习项目方便换图床）
       }
     ]
   }

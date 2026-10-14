@@ -1,6 +1,7 @@
 // app/blog/[id]/page.tsx
 // 动态路由：/blog/任意文章id 都会进入这个页面
 import BlogDeleteBtn from "@/app/components/BlogDeleteBtn";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
@@ -18,6 +19,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return {
     title: blog.title,
     description: `阅读文章：${blog.title}`,
+    // 社交分享卡片：发微信/朋友圈时，对方看到的小卡片内容
+    openGraph: {
+      title: blog.title,
+      description: `阅读文章：${blog.title}`,
+      type: "article",
+      images: blog.coverImage ? [{ url: blog.coverImage }] : undefined,
+    },
   };
 }
 
@@ -30,7 +38,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
   // 读取文章（顺便查出作者信息）
   const blog = await prisma.blog.findUnique({
     where: { id },
-    include: { user: true },
+    include: { user: true, tags: { include: { tag: true } } },
   });
 
   // 如果文章不存在，显示提示页
@@ -64,8 +72,42 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
         <Link href="/blog" style={{ fontSize: 14, color: "var(--text-light)" }}>
           ← 返回博客列表
         </Link>
-
+        {/* 封面图：有封面才显示 */}
+        {blog.coverImage ? (
+          <Image
+            src={blog.coverImage}
+            alt={blog.title}
+            width={800}
+            height={360}
+            style={{
+              width: "100%",
+              maxHeight: "360px",
+              objectFit: "cover",
+              borderRadius: "10px",
+            }}
+          />
+        ) : null}
+        
         <h1 style={{ margin: "16px 0 8px", fontSize: "32px" }}>{blog.title}</h1>
+                {/* 标签徽章：有标签才显示 */}
+                {blog.tags.length > 0 && (
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" }}>
+            {blog.tags.map((bt) => (
+              <span
+                key={bt.tagId}
+                style={{
+                  padding: "2px 10px",
+                  borderRadius: "999px",
+                  fontSize: "12px",
+                  background: "#eef2ff",
+                  color: "#4338ca",
+                }}
+              >
+                #{bt.tag.name}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* 作者 + 发布时间 + 阅读量 */}
         <p style={{ color: "var(--text-light)", fontSize: "14px" }}>

@@ -22,6 +22,8 @@ export async function createBlog(
   const title = (formData.get("title") as string) || "";
   const content = (formData.get("content") as string) || "";
   const category = (formData.get("category") as string) || "未分类";
+  const coverImage = (formData.get("coverImage") as string) || "";
+  const tags = formData.getAll("tags") as string[]; // 勾选的多个标签名
 
 
   // 校验规则（关键教学点）：哪里不对，就把错误信息返回给页面显示
@@ -35,7 +37,14 @@ export async function createBlog(
       title: title.trim(),
       content: content.trim(),
       category: category,
+      coverImage: coverImage.trim(),
       userId: session.user.id, // 记录作者是谁
+      // 挂标签：勾选的标签名，数据库没有就自动创建（connectOrCreate）
+      tags: {
+        create: tags.map((name) => ({
+          tag: { connectOrCreate: { where: { name }, create: { name } } },
+        })),
+      },
     },
   });
 
@@ -56,6 +65,7 @@ export async function updateBlog(
   const content = (formData.get("content") as string) || "";
   const category = (formData.get("category") as string) || "未分类";
   const pinned = formData.get("pinned") === "on";
+  const coverImage = (formData.get("coverImage") as string) || "";
 
   if (!title.trim()) return { error: "标题不能为空" };
   if (!content.trim()) return { error: "内容不能为空" };
@@ -71,7 +81,7 @@ export async function updateBlog(
 
   await prisma.blog.update({
     where: { id },
-    data: { title: title.trim(), content: content.trim(), category: category, pinned },
+        data: { title: title.trim(), content: content.trim(), category: category, pinned, coverImage: coverImage.trim() },
   });
   revalidatePath("/blog");
   revalidatePath(`/blog/${id}`);

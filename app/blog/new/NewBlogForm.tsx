@@ -35,10 +35,11 @@ useEffect(() => {
         />
       </div>
       <div>
-        <label style={{ fontWeight: "bold" }}>文章分类</label>
-        <select
-          name="category"
-          defaultValue="未分类"
+      <div>
+        <label style={{ fontWeight: "bold" }}>封面图地址（可选）</label>
+        <input
+          name="coverImage"
+          placeholder="粘贴图片网址，如 https://... 不填就没有封面"
           style={{
             width: "100%",
             padding: "10px",
@@ -47,14 +48,21 @@ useEffect(() => {
             border: "1px solid #d1d5db",
             fontSize: "16px",
           }}
-        >
-          <option>未分类</option>
-          <option>学习笔记</option>
-          <option>生活随笔</option>
-          <option>技术教程</option>
-        </select>
+        />
       </div>
+      
       <div>
+        <label style={{ fontWeight: "bold" }}>选择标签（可多选）</label>
+        <div style={{ display: "flex", gap: "14px", marginTop: "6px", flexWrap: "wrap" }}>
+          {["学习笔记", "技术教程", "生活随笔", "旅行日记"].map((t) => (
+            <label key={t} style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+              <input type="checkbox" name="tags" value={t} />
+              {t}
+            </label>
+          ))}
+        </div>
+      </div>
+
         <label style={{ fontWeight: "bold" }}>文章分类</label>
         <select
           name="category"

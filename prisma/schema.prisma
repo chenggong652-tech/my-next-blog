@@ -38,10 +38,12 @@ model Blog {
   views     Int      @default(0) // 阅读量，默认为0
   category  String   @default("未分类") // 文章分类，默认"未分类"
   pinned    Boolean  @default(false) // 是否置顶：true=置顶
+  coverImage String? // 封面图片地址（可空：不填就不显示封面）
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags BlogTag[] // 这篇文章挂了哪些标签（多对多）
 }
 
 
@@ -120,4 +122,21 @@ model Reply {
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+// 标签表：一个标签可以挂多篇文章
+model Tag {
+  id    String   @id @default(cuid())
+  name  String   @unique // 标签名（唯一，不重复）
+  blogs BlogTag[]
+}
+
+// 中间表：记录"哪篇文章挂了哪些标签"（多对多的桥梁）
+model BlogTag {
+  blogId String
+  tagId  String
+  blog   Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([blogId, tagId]) // 联合主键：同一对(文章,标签)只能出现一次
 }

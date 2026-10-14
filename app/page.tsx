@@ -1,6 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
+// 统计卡片的长相（4个卡片共用）
+const statCard: React.CSSProperties = {
+  background: "var(--card-bg)",
+  border: "1px solid var(--card-border)",
+  borderRadius: "12px",
+  padding: "16px",
+  textAlign: "center",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+};
+
 export default async function HomePage() {
   // 取最新3篇博客
   const latestBlogs = await prisma.blog.findMany({
@@ -22,6 +32,15 @@ export default async function HomePage() {
     take: 3,
     include: { user: true },
   });
+  
+  // ====== 统计看板数据（聚合计算）======
+  const [blogCount, messageCount, userCount, viewsResult] = await Promise.all([
+    prisma.blog.count(),                                  // 数文章有几篇
+    prisma.message.count(),                               // 数留言有几条
+    prisma.user.count(),                                  // 数用户有几个
+    prisma.blog.aggregate({ _sum: { views: true } }),     // 所有文章阅读量加起来
+  ]);
+  const totalViews = viewsResult._sum.views ?? 0;         // 求和结果；没有文章时是 null，就按 0 算
 
   return (
     <main style={{ maxWidth: "900px", margin: "40px auto", padding: "0 20px" }}>
@@ -35,6 +54,33 @@ export default async function HomePage() {
           <Link href="/message">
             <button style={{ padding: "10px 20px", fontSize: 16, borderRadius:"8px" }}>前往留言板</button>
           </Link>
+        </div>
+      </div>
+
+      {/* 📊 网站数据统计：4个数字小卡片 */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr 1fr",
+          gap: "12px",
+          marginBottom: "40px",
+        }}
+      >
+        <div style={statCard}>
+          <div style={{ fontSize: "13px", color: "var(--text-light)" }}>📝 文章</div>
+          <div style={{ fontSize: "24px", fontWeight: "bold", marginTop: 4 }}>{blogCount} 篇</div>
+        </div>
+        <div style={statCard}>
+          <div style={{ fontSize: "13px", color: "var(--text-light)" }}>💬 留言</div>
+          <div style={{ fontSize: "24px", fontWeight: "bold", marginTop: 4 }}>{messageCount} 条</div>
+        </div>
+        <div style={statCard}>
+          <div style={{ fontSize: "13px", color: "var(--text-light)" }}>👥 用户</div>
+          <div style={{ fontSize: "24px", fontWeight: "bold", marginTop: 4 }}>{userCount} 个</div>
+        </div>
+        <div style={statCard}>
+          <div style={{ fontSize: "13px", color: "var(--text-light)" }}>👀 总阅读</div>
+          <div style={{ fontSize: "24px", fontWeight: "bold", marginTop: 4 }}>{totalViews} 次</div>
         </div>
       </div>
 

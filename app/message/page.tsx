@@ -15,18 +15,23 @@ const PAGE_SIZE = 5;
 export default async function MessagePage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }) {
   // 服务端：获取登录状态 + 当前页码
   const session = await auth();
   const sp = await searchParams;
   const page = Number(sp.page) || 1;
+  const q = sp.q?.trim() || ""; // 搜索关键词（没有就是空）
+  // 搜索条件：有关键词就筛选"内容包含关键词"的留言
+  const where: any = {};
+  if (q) where.content = { contains: q };
   const skip = (page - 1) * PAGE_SIZE;
 
   // 服务端：读留言总数 + 当前页留言（连带作者信息和点赞记录）
   const [totalCount, messageList] = await Promise.all([
-    prisma.message.count(),
+    prisma.message.count({ where }),
     prisma.message.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       include: {
         user: true,
@@ -44,6 +49,47 @@ export default async function MessagePage({
   return (
     <main style={{ maxWidth: "700px", margin: "40px auto" }}>
       <h1>留言板</h1>
+      
+      {/* 搜索框：GET 提交，关键词进网址 */}
+      <form
+        action="/message"
+        method="GET"
+        style={{ display: "flex", gap: "8px", marginBottom: "16px" }}
+      >
+        <input
+          name="q"
+          defaultValue={q}
+          placeholder="搜索留言内容……"
+          style={{
+            flex: 1,
+            padding: "8px 12px",
+            borderRadius: "8px",
+            border: "1px solid var(--card-border)",
+            fontSize: "14px",
+          }}
+        />
+        <button
+          type="submit"
+          style={{
+            padding: "8px 16px",
+            borderRadius: "8px",
+            border: "none",
+            background: "#2563eb",
+            color: "#fff",
+            cursor: "pointer",
+          }}
+        >
+          搜索
+        </button>
+        {q && (
+          <Link
+            href="/message"
+            style={{ alignSelf: "center", fontSize: "14px", color: "var(--link)" }}
+          >
+            清除
+          </Link>
+        )}
+      </form>
 
       {/* 已登录：显示发布表单 */}
       {session ? (
@@ -105,8 +151,8 @@ export default async function MessagePage({
 
       {/* 留言列表 */}
       <div style={{ marginTop: 10 }}>
-        {messageList.length === 0 ? (
-          <p>还没有留言</p>
+      {messageList.length === 0 ? (
+          <p>{q ? `没有找到"${q}"相关的留言` : "还没有留言"}</p>
         ) : (
           messageList.map((msg) => {
             // 判断当前用户是否点过赞
@@ -203,7 +249,7 @@ export default async function MessagePage({
               上一页
             </button>
           ) : (
-            <Link href={`/message?page=${page - 1}`}>
+            <Link href={`/message?q=${encodeURIComponent(q)}&page=${page - 1}`}>
               <button>上一页</button>
             </Link>
           )}
@@ -217,7 +263,7 @@ export default async function MessagePage({
               下一页
             </button>
           ) : (
-            <Link href={`/message?page=${page + 1}`}>
+            <Link href={`/message?q=${encodeURIComponent(q)}&page=${page + 1}`}>
               <button>下一页</button>
             </Link>
           )}

@@ -95,6 +95,11 @@ export default async function BlogPage({
           <Link href="/blog/new">
             <button>✏️ 新建文章</button>
           </Link>
+          
+          <Link href="/api/export?type=blogs">
+            <button>📥 导出CSV</button>
+          </Link>
+
           <Link href="/blog/search">
             <button>🔍 搜索文章</button>
           </Link>

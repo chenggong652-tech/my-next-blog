@@ -3,6 +3,10 @@
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
+
+    // 读环境变量（和 sitemap 同一个）
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
   // 取最近 20 篇文章
   const blogs = await prisma.blog.findMany({
     orderBy: { createdAt: "desc" },
@@ -22,7 +26,7 @@ export async function GET() {
       (blog) => `
     <item>
       <title>${blog.title}</title>
-      <link>http://localhost:3000/blog/${blog.id}</link>
+      <link>${siteUrl}/blog/${blog.id}</link>
       <description>${blog.content.slice(0, 200)}</description>
       <pubDate>${blog.createdAt.toUTCString()}</pubDate>
     </item>`
@@ -34,7 +38,7 @@ export async function GET() {
 <rss version="2.0">
   <channel>
     <title>我的博客</title>
-    <link>http://localhost:3000</link>
+    <link>${siteUrl}</link>
     <description>我的 Next.js 学习博客</description>
     ${items}
   </channel>

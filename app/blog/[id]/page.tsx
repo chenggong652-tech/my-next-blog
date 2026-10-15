@@ -1,6 +1,9 @@
 // app/blog/[id]/page.tsx
 // 动态路由：/blog/任意文章id 都会进入这个页面
 import BlogDeleteBtn from "@/app/components/BlogDeleteBtn";
+import ViewCounter from "@/app/components/ViewCounter";
+import FavoriteBtn from "@/app/components/FavoriteBtn";
+import ShareBtn from "@/app/components/ShareBtn";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -41,7 +44,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
     include: { user: true, tags: { include: { tag: true } } },
   });
 
-  // 如果文章不存在，显示提示页
+  // 如果文章不存在，显示提示页（先判空！后面才能安全使用 blog）
   if (!blog) {
     return (
       <main style={{ maxWidth: "800px", margin: "40px auto" }}>
@@ -51,15 +54,24 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
     );
   }
 
-  // 阅读量 +1（每次有人打开这篇文章，就加1）
-  // 简单实现：刷新一次就加一次，真实网站会用cookie防止重复计数
-  await prisma.blog.update({
-    where: { id },
-    data: { views: { increment: 1 } },
-  });
+  // 查当前用户是否收藏过 + 这篇文章的收藏总数
+  const favorite = session?.user?.id
+    ? await prisma.favorite.findUnique({
+        where: { userId_blogId: { userId: session.user.id, blogId: blog.id } },
+      })
+    : null;
+  const favoriteCount = await prisma.favorite.count({ where: { blogId: blog.id } });
 
+  // 相关文章：同分类的其他文章（排除自己，只取3篇）
+  const relatedBlogs = await prisma.blog.findMany({
+    where: { category: blog.category, id: { not: blog.id } },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+  });
   return (
     <main style={{ maxWidth: "800px", margin: "40px auto" }}>
+              {/* 阅读量计数：页面打开时自动触发（防刷版） */}
+              <ViewCounter blogId={blog.id} />
       <div
         style={{
           background: "var(--card-bg)",
@@ -116,6 +128,15 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
           </Link>
           发布于 {blog.createdAt.toLocaleString()}
           <span style={{ marginLeft: 16 }}>📖 阅读量：{blog.views}</span>
+          <span style={{ marginLeft: 16 }}>
+            <FavoriteBtn
+              blogId={blog.id}
+              initialFavorited={!!favorite}
+              initialCount={favoriteCount}
+            />
+          </span>
+          <ShareBtn />
+
         </p>
 
         {/* 文章正文：交给 ReactMarkdown 渲染，支持 Markdown 语法 */}
@@ -132,6 +153,37 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
           <ReactMarkdown>{blog.content}</ReactMarkdown>
         </div>
 
+        {/* 相关文章推荐：同分类的其他文章 */}
+        {relatedBlogs.length > 0 && (
+          <div style={{ marginTop: "32px" }}>
+            <h3 style={{ fontSize: "18px" }}>📚 你可能还想看</h3>
+            {relatedBlogs.map((rb) => (
+              <Link
+                href={`/blog/${rb.id}`}
+                key={rb.id}
+                style={{ display: "block", textDecoration: "none" }}
+              >
+                <div
+                  style={{
+                    border: "1px solid var(--card-border)",
+                    padding: "12px 16px",
+                    marginTop: "8px",
+                    borderRadius: "10px",
+                    background: "var(--card-bg)",
+                  }}
+                >
+                  <p style={{ margin: 0, color: "var(--link)", fontWeight: 600 }}>
+                    {rb.pinned ? "📌 " : ""}
+                    {rb.title}
+                  </p>
+                  <p style={{ margin: "4px 0 0", color: "var(--text-light)", fontSize: "13px" }}>
+                    {rb.category} · 📖 阅读量 {rb.views} · {rb.createdAt.toLocaleString()}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
 
         {/* 只有文章的作者本人，才显示编辑、删除按钮 */}
         {session?.user?.id === blog.userId && (

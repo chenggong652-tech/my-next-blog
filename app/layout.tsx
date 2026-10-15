@@ -32,29 +32,34 @@ export default async function RootLayout({
       >
         {/* 全局导航栏，所有页面顶部都会出现 */}
         <nav
-          className="p-4 flex gap-6 items-center"
-          style={{
-            background: "var(--nav-bg)",
-            borderBottom: "1px solid var(--nav-border)",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-          }}
-        >
+  className="p-4 flex gap-6 items-center"
+  style={{
+    background: "#ffffff",
+    borderBottom: "1px solid #e5e7eb",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+    flexWrap: "nowrap",        // ① 禁止换行：永远一行
+    overflowX: "auto",         // ② 放不下时出现横向滚动
+    whiteSpace: "nowrap",      // ③ 链接文字也不换行
+    scrollbarWidth: "thin",    // ④ 滚动条细一点，好看
+  }}
+>
+
           <Link href="/" className="text-blue-600">首页</Link>
           <Link href="/about" className="text-blue-600">关于我们</Link>
           <Link href="/users" className="text-blue-600">用户列表</Link>
           <Link href="/blog" className="text-blue-600">博客列表</Link>
           <Link href="/blog-search" className="text-blue-600">博客搜索</Link>
-          <Link href="/demo-user" className="text-blue-600">练习用户页</Link>
-          <Link href="/simple-click" className="text-blue-600">简单点击练习</Link>
-          <Link href="/todos-server" className="text-blue-600">服务端待办</Link>
-          <Link href="/todos-mix" className="text-blue-600">混合版待办</Link>
-          <Link href="/todo" className="text-blue-600">待办列表</Link>
           <Link href="/message" className="text-blue-600">留言板</Link>
           {/* 右侧：根据登录状态显示 登录 或 退出 */}
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "12px" }}>
             <ThemeToggle />
             {session ? (
-              <Link href="/logout" className="text-red-600">🚪退出登录</Link>
+              <>
+                <Link href="/favorites" className="text-blue-600">❤️收藏</Link>
+                <Link href="/change-name" className="text-blue-600">👤改昵称</Link>
+                <Link href="/change-password" className="text-blue-600">🔑改密码</Link>
+                <Link href="/logout" className="text-red-600">🚪退出登录</Link>
+              </>
             ) : (
               <Link href="/login" className="text-green-600">🔐去登录</Link>
             )}

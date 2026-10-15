@@ -44,6 +44,7 @@ model Blog {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tags BlogTag[] // 这篇文章挂了哪些标签（多对多）
+  favorites Favorite[] // 这篇文章被哪些用户收藏了（多对多）
 }
 
 
@@ -63,6 +64,7 @@ model User {
   todos         Todo[]
   messageLikes MessageLike[]
   replies Reply[]
+  favorites Favorite[] // 这个用户收藏了哪些文章
 }
 
 model Account {
@@ -140,3 +142,16 @@ model BlogTag {
 
   @@id([blogId, tagId]) // 联合主键：同一对(文章,标签)只能出现一次
 }
+// 收藏表：记录"哪个用户收藏了哪篇文章"
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  blogId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, blogId]) // 联合唯一：同一用户对同一文章只能收藏一次
+}
+

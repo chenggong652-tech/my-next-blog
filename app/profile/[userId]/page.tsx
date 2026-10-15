@@ -25,6 +25,11 @@ export default async function UserPage({ params }: { params: Promise<{ userId: s
 
   const session = await auth();
   const userData = await getUserData(userId);
+    // 统计：这个用户的收藏数 + 留言总数（count = 聚合查询，新知识）
+    const [favoriteCount, messageCount] = await Promise.all([
+      prisma.favorite.count({ where: { userId } }),
+      prisma.message.count({ where: { userId } }),
+    ]);  
 
   if (!userData) {
     return <div style={{padding:"40px"}}>用户不存在</div>;
@@ -34,9 +39,11 @@ export default async function UserPage({ params }: { params: Promise<{ userId: s
 
   return (
     <main style={{ maxWidth: "960px", margin: "0 auto", padding: "24px" }}>
-      <div style={{ borderBottom: "1px solid #ccc", paddingBottom: 16, marginBottom: 24 }}>
+      <div style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: 16, marginBottom: 24 }}>
         <h1 style={{ fontSize: "32px", margin: 0 }}>{userData.name ?? "匿名用户"}</h1>
-        <p style={{ color: "#666", marginTop: 8 }}>一共发布 {userData.blogs.length} 篇博客</p>
+        <p style={{ color: "var(--text-light)", marginTop: 8 }}>
+          共发布 {userData.blogs.length} 篇文章 · {messageCount} 条留言 · 收藏了 {favoriteCount} 篇文章
+        </p>
         {isSelf && (
           <Link href="/blog/new">
             <button style={{ marginTop: 12, padding: "8px 16px", borderRadius: "8px", border: "1px solid #d1d5db", background: "#ffffff", cursor: "pointer" }}>管理我的文章</button>
@@ -50,16 +57,23 @@ export default async function UserPage({ params }: { params: Promise<{ userId: s
           <Link href={`/blog/${blog.id}`} key={blog.id}>
             <div
               style={{
-                border: "1px solid #e5e7eb",
+                border: "1px solid var(--card-border)",
                 padding: 16,
                 marginBottom: 12,
                 borderRadius: 10,
-                background: "#fff",
+                background: "var(--card-bg)",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
               }}
             >
-              <h3 style={{ margin: 0, color: "#2563eb" }}>{blog.title}</h3>
-              <p style={{ color: "#666", fontSize: "14px", marginTop: 8 }}>{blog.createdAt.toLocaleString()}</p>
+              {blog.coverImage && (
+                <img
+                  src={blog.coverImage}
+                  alt={blog.title}
+                  style={{ width: "100%", height: "120px", objectFit: "cover", borderRadius: "8px", marginBottom: "10px" }}
+                />
+              )}
+              <h3 style={{ margin: 0, color: "var(--link)" }}>{blog.title}</h3>
+              <p style={{ color: "var(--text-light)", fontSize: "14px", marginTop: 8 }}>{blog.createdAt.toLocaleString()}</p>
             </div>
           </Link>
         ))}
@@ -68,21 +82,21 @@ export default async function UserPage({ params }: { params: Promise<{ userId: s
       <h2 style={{ fontSize: "20px" }}>TA的留言记录</h2>
       <div style={{ margin: "16px 0" }}>
         {userData.messages.length === 0 ? (
-          <p style={{ color: "#666" }}>TA还没有留言</p>
+          <p style={{ color: "var(--text-light)" }}>TA还没有留言</p>
         ) : (
           userData.messages.map((msg) => (
             <div
               key={msg.id}
               style={{
-                border: "1px solid #e5e7eb",
+                border: "1px solid var(--card-border)",
                 padding: 16,
                 marginBottom: 12,
                 borderRadius: 10,
-                background: "#fff",
+                background: "var(--card-bg)",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
               }}
             >
-              <p style={{ fontSize: "13px", color: "#666", margin: 0 }}>{msg.createdAt.toLocaleString()}</p>
+              <p style={{ fontSize: "13px", color: "var(--text-light)", margin: 0 }}>{msg.createdAt.toLocaleString()}</p>
               <p style={{ marginTop: 8 }}>{msg.content}</p>
             </div>
           ))

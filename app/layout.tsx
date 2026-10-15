@@ -5,6 +5,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/app/components/Toast";
 import ThemeToggle from "@/app/components/ThemeToggle";
+import { isAdmin } from "@/lib/admin";
 
 const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
@@ -56,6 +57,9 @@ export default async function RootLayout({
             {session ? (
               <>
                 <Link href="/favorites" className="text-blue-600">❤️收藏</Link>
+                {await isAdmin() && (
+                  <Link href="/admin" className="text-blue-600">⚙️后台</Link>
+                )}
                 <Link href="/change-name" className="text-blue-600">👤改昵称</Link>
                 <Link href="/change-password" className="text-blue-600">🔑改密码</Link>
                 <Link href="/logout" className="text-red-600">🚪退出登录</Link>

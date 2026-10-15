@@ -3,7 +3,10 @@
 import BlogDeleteBtn from "@/app/components/BlogDeleteBtn";
 import ViewCounter from "@/app/components/ViewCounter";
 import FavoriteBtn from "@/app/components/FavoriteBtn";
+import BackToTop from "@/app/components/BackToTop";
+import ReadingProgress from "@/app/components/ReadingProgress";
 import ShareBtn from "@/app/components/ShareBtn";
+import CommentForm from "@/app/components/CommentForm";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -68,10 +71,19 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
     orderBy: { createdAt: "desc" },
     take: 3,
   });
+    // 评论区数据：这篇文章的所有评论（连带作者信息一起查）
+    const comments = await prisma.comment.findMany({
+      where: { blogId: blog.id },
+      orderBy: { createdAt: "desc" }, // 最新的在最上面
+      include: { user: true }, // 新知识：顺带查出每条评论的作者
+    });
+  
   return (
     <main style={{ maxWidth: "800px", margin: "40px auto" }}>
               {/* 阅读量计数：页面打开时自动触发（防刷版） */}
               <ViewCounter blogId={blog.id} />
+              <ReadingProgress />
+              <BackToTop />
       <div
         style={{
           background: "var(--card-bg)",
@@ -152,6 +164,38 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
         >
           <ReactMarkdown>{blog.content}</ReactMarkdown>
         </div>
+
+        {/* 评论区：文章下方直接聊天 */}
+        <div style={{ marginTop: "32px", borderTop: "1px solid var(--card-border)", paddingTop: "24px" }}>
+          <h3 style={{ fontSize: "20px" }}>💬 评论（{comments.length}）</h3>
+
+          {/* 评论列表 */}
+          {comments.length === 0 ? (
+            <p style={{ color: "var(--text-light)", fontSize: "14px" }}>还没有评论，来抢沙发！</p>
+          ) : (
+            comments.map((c) => (
+              <div
+                key={c.id}
+                style={{
+                  border: "1px solid var(--card-border)",
+                  padding: "12px 16px",
+                  marginTop: "10px",
+                  borderRadius: "10px",
+                  background: "var(--card-bg)",
+                }}
+              >
+                <p style={{ margin: 0, fontSize: "13px", color: "var(--text-light)" }}>
+                  {c.user?.name || "匿名"} · {c.createdAt.toLocaleString()}
+                </p>
+                <p style={{ margin: "6px 0 0", color: "var(--text)" }}>{c.content}</p>
+              </div>
+            ))
+          )}
+
+          {/* 评论输入框 */}
+          <CommentForm blogId={blog.id} />
+        </div>
+
 
         {/* 相关文章推荐：同分类的其他文章 */}
         {relatedBlogs.length > 0 && (

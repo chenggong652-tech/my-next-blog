@@ -45,6 +45,7 @@ model Blog {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tags BlogTag[] // 这篇文章挂了哪些标签（多对多）
   favorites Favorite[] // 这篇文章被哪些用户收藏了（多对多）
+    comments Comment[] // 这篇文章的评论（一对多）
 }
 
 
@@ -65,6 +66,7 @@ model User {
   messageLikes MessageLike[]
   replies Reply[]
   favorites Favorite[] // 这个用户收藏了哪些文章
+  comments Comment[] // 这个用户发表的评论
 }
 
 model Account {
@@ -153,5 +155,16 @@ model Favorite {
   blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
 
   @@unique([userId, blogId]) // 联合唯一：同一用户对同一文章只能收藏一次
+}
+// 评论表：一条评论属于一篇文章 + 一个用户
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   // 评论内容
+  createdAt DateTime @default(now())
+  userId    String   // 谁评论的
+  blogId    String   // 评论哪篇文章
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
 }
 

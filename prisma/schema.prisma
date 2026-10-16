@@ -67,6 +67,7 @@ model User {
   replies Reply[]
   favorites Favorite[] // 这个用户收藏了哪些文章
   comments Comment[] // 这个用户发表的评论
+  commentLikes CommentLike[] // 这个用户给哪些评论点过赞
 }
 
 model Account {
@@ -166,5 +167,19 @@ model Comment {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  likes CommentLike[] // 这条评论收到的点赞
+}
+
+// 评论点赞表：记录"哪个用户给哪条评论点过赞"（和收藏表一个套路）
+model CommentLike {
+  id        String   @id @default(cuid())
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId]) // 联合唯一：同一用户对同一条评论只能赞一次
 }
 

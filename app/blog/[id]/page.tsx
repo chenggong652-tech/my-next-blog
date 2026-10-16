@@ -7,6 +7,7 @@ import BackToTop from "@/app/components/BackToTop";
 import ReadingProgress from "@/app/components/ReadingProgress";
 import ShareBtn from "@/app/components/ShareBtn";
 import CommentForm from "@/app/components/CommentForm";
+import CommentLikeBtn from "@/app/components/CommentLikeBtn";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -77,8 +78,34 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
     const comments = await prisma.comment.findMany({
       where: { blogId: blog.id },
       orderBy: { createdAt: "desc" }, // 最新的在最上面
-      include: { user: true }, // 新知识：顺带查出每条评论的作者
+      include: {
+        user: true, // 顺带查出每条评论的作者
+        _count: { select: { likes: true } }, // 顺带数每条评论的点赞数
+      },
     });
+
+    // 当前用户给哪些评论点过赞（收藏按钮的套路：查"我赞过的"集合）
+    const myLikes = session?.user?.id
+      ? await prisma.commentLike.findMany({
+          where: { userId: session.user.id, commentId: { in: comments.map((c) => c.id) } },
+          select: { commentId: true },
+        })
+      : [];
+    const likedSet = new Set(myLikes.map((l) => l.commentId));
+
+      // 上一篇/下一篇：按发布时间找（lt=比我早 gt=比我晚）
+  // select：只取 id 和标题（轻量查询，不拖全部字段）
+  const prevBlog = await prisma.blog.findFirst({
+    where: { createdAt: { lt: blog.createdAt } }, // 新知识：发布时间比我早的
+    orderBy: { createdAt: "desc" },               // 从新到旧排 → 取最新的那篇旧的 = 上一篇
+    select: { id: true, title: true },            // 新知识：只取需要的字段
+  });
+  const nextBlog = await prisma.blog.findFirst({
+    where: { createdAt: { gt: blog.createdAt } }, // 发布时间比我晚的
+    orderBy: { createdAt: "asc" },                // 从旧到新排 → 取最早的那篇新的 = 下一篇
+    select: { id: true, title: true },
+  });
+
   
   return (
     <main style={{ maxWidth: "800px", margin: "40px auto" }}>
@@ -169,6 +196,38 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
           <ReactMarkdown>{blog.content}</ReactMarkdown>
         </div>
 
+        {/* 上一篇/下一篇导航：看完正文，顺着读 */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "12px",
+            marginTop: "32px",
+            borderTop: "1px solid var(--card-border)",
+            paddingTop: "20px",
+          }}
+        >
+          {prevBlog ? (
+            <Link href={`/blog/${prevBlog.id}`} style={{ textDecoration: "none", color: "var(--text-light)", maxWidth: "45%" }}>
+              <span style={{ fontSize: 13 }}>← 上一篇</span>
+              <div style={{ color: "var(--link)", fontWeight: 600, marginTop: 4 }}>{prevBlog.title}</div>
+            </Link>
+          ) : (
+            <span />
+          )}
+          {nextBlog ? (
+            <Link
+              href={`/blog/${nextBlog.id}`}
+              style={{ textDecoration: "none", color: "var(--text-light)", textAlign: "right", maxWidth: "45%" }}
+            >
+              <span style={{ fontSize: 13 }}>下一篇 →</span>
+              <div style={{ color: "var(--link)", fontWeight: 600, marginTop: 4 }}>{nextBlog.title}</div>
+            </Link>
+          ) : (
+            <span />
+          )}
+        </div>
+
         {/* 评论区：文章下方直接聊天 */}
         <div style={{ marginTop: "32px", borderTop: "1px solid var(--card-border)", paddingTop: "24px" }}>
           <h3 style={{ fontSize: "20px" }}>💬 评论（{comments.length}）</h3>
@@ -193,6 +252,11 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
 
                 </p>
                 <p style={{ margin: "6px 0 0", color: "var(--text)" }}>{c.content}</p>
+                
+                <div style={{ marginTop: "8px" }}>
+                  <CommentLikeBtn commentId={c.id} initialLiked={likedSet.has(c.id)} initialCount={c._count.likes} />
+                </div>
+
               </div>
             ))
           )}

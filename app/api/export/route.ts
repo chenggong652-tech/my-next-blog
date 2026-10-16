@@ -39,6 +39,59 @@ export async function GET(request: NextRequest) {
       },
     });
   }
+  
+  // ===== 导出留言列表 =====
+  if (type === "messages") {
+    // 读全部留言（带留言人）
+    const messages = await prisma.message.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { user: true },
+    });
+
+    const rows = [
+      ["留言内容", "留言人", "发布时间"],
+      ...messages.map((m) => [
+        m.content,
+        m.user?.name || "匿名",
+        m.createdAt.toLocaleString(),
+      ]),
+    ];
+
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    return new Response("\ufeff" + csv, {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": 'attachment; filename="messages.csv"',
+      },
+    });
+  }
+
+  // ===== 导出用户列表 =====
+  if (type === "users") {
+    // 读全部用户（_count 数每人文章数）
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: "asc" },
+      include: { _count: { select: { blogs: true } } },
+    });
+
+    const rows = [
+      ["用户名", "邮箱", "文章数", "注册时间"],
+      ...users.map((u) => [
+        u.name || "未设置",
+        u.email,
+        String(u._count.blogs),
+        u.createdAt.toLocaleString(),
+      ]),
+    ];
+
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    return new Response("\ufeff" + csv, {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": 'attachment; filename="users.csv"',
+      },
+    });
+  }
 
   // 其他类型还没做，先返回提示
   return new Response("未知导出类型", { status: 400 });

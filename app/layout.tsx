@@ -51,6 +51,9 @@ export default async function RootLayout({
           <Link href="/blog" className="text-blue-600">博客列表</Link>
           <Link href="/blog-search" className="text-blue-600">博客搜索</Link>
           <Link href="/message" className="text-blue-600">留言板</Link>
+          <Link href="/tags" className="text-blue-600">🏷️标签</Link>
+          <Link href="/archive" className="text-blue-600">🗂️归档</Link>
+
           {/* 右侧：根据登录状态显示 登录 或 退出 */}
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "12px" }}>
             <ThemeToggle />

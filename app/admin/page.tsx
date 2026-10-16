@@ -3,6 +3,18 @@ import { isAdmin } from "@/lib/admin";
 import Link from "next/link";
 import AdminDeleteBtn from "@/app/components/AdminDeleteBtn";
 
+// 备份按钮的长相
+const btn: React.CSSProperties = {
+  padding: "8px 16px",
+  borderRadius: "8px",
+  border: "1px solid #2563eb",
+  background: "#2563eb",
+  color: "#fff",
+  textDecoration: "none",
+  fontSize: "14px",
+};
+
+
 // 后台主页：只有管理员能看
 export default async function AdminPage() {
   // 1. 检查权限：不是管理员 → 直接拒绝
@@ -73,6 +85,27 @@ export default async function AdminPage() {
             </p>
           </div>
         ))}
+      </div>
+
+      {/* 数据备份：一键下载 CSV（记得定期备份！） */}
+      <div
+        style={{
+          marginTop: "24px",
+          border: "1px solid var(--card-border)",
+          borderRadius: "12px",
+          padding: "16px",
+          background: "var(--card-bg)",
+        }}
+      >
+        <h3 style={{ margin: 0, fontSize: "16px" }}>📥 数据备份</h3>
+        <p style={{ margin: "6px 0 12px", color: "var(--text-light)", fontSize: "13px" }}>
+          定期下载，数据在手心里才踏实
+        </p>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <a href="/api/export?type=blogs" style={btn}>📄 导出文章</a>
+          <a href="/api/export?type=messages" style={btn}>💬 导出留言</a>
+          <a href="/api/export?type=users" style={btn}>👥 导出用户</a>
+        </div>
       </div>
       
       {/* 文章管理：所有文章，管理员可删 */}

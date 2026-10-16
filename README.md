@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 我的简易博客网站
 
-## Getting Started
+一个用 Next.js 亲手搭出来的个人博客：写文章、留言互动、后台管理、一键备份。
 
-First, run the development server:
+## ✨ 功能清单
+
+- **文章**：发布 / 编辑 / 删除、Markdown 排版、封面图上传、分类筛选、标签
+- **互动**：留言板、评论区（支持点赞）、文章收藏、微信分享卡片
+- **用户**：注册 / 登录、改昵称、改密码、个人主页、浏览历史
+- **后台**：数据统计看板、文章管理、用户管理、CSV 数据备份
+- **体验**：深色模式、相对时间、阅读进度条、返回顶部、上一篇/下一篇、标签云、文章归档
+- **性能**：数据缓存（首页/列表秒开）、分页、阅读量防刷、搜索高亮
+
+## 🛠️ 技术栈
+
+- Next.js + React
+- Prisma + Neon PostgreSQL
+- NextAuth 登录
+
+## 🚀 本地运行
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install      # 第一次装依赖
+npm run dev      # 启动开发服务器
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 http://localhost:3000 即可访问。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ☁️ 部署到线上（Vercel）
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**你一直在用的方法：GitHub 推送**
 
-## Learn More
+```bash
+# 1. 先本地验证（能构建成功，线上才能部署成功）
+npm run build
 
-To learn more about Next.js, take a look at the following resources:
+# 2. 推上去，Vercel 自动部署上线
+git add -A
+git commit -m "更新内容"
+git push origin main
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+> 环境变量（数据库连接串那些）：**第一次部署时已经配好了，不用动**。
+> 以后要改：Vercel 项目 → Settings → Environment Variables，对照本地 `.env` 里的变量名添加上去就行。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📦 数据备份
 
-## Deploy on Vercel
+登录后台 →「数据备份」→ 下载 文章 / 留言 / 用户 三个 CSV。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🗂️ 目录速览
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `app/page.tsx` 首页
+- `app/blog` 博客（列表 / 详情 / 发布 / 编辑）
+- `app/admin` 管理后台
+- `app/components` 通用组件
+- `prisma/schema.prisma` 数据库表结构

@@ -12,6 +12,8 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import type { Metadata } from "next";
+import HistoryTracker from "@/app/components/HistoryTracker";
+import RelativeTime from "@/app/components/RelativeTime";
 import ReactMarkdown from "react-markdown";
 
 // 根据文章内容，动态生成网页标题
@@ -84,6 +86,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
               <ViewCounter blogId={blog.id} />
               <ReadingProgress />
               <BackToTop />
+              <HistoryTracker blogId={blog.id} title={blog.title} />
       <div
         style={{
           background: "var(--card-bg)",
@@ -138,7 +141,8 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
           <Link href={`/profile/${blog.userId}`} style={{ color: "var(--link)" }}>
             {blog.user?.name || "匿名"}
           </Link>
-          发布于 {blog.createdAt.toLocaleString()}
+          发布于 <RelativeTime time={blog.createdAt} />
+          <span style={{ marginLeft: 16 }}>⏱️ 约 {Math.ceil(blog.content.length / 300)} 分钟读完</span>
           <span style={{ marginLeft: 16 }}>📖 阅读量：{blog.views}</span>
           <span style={{ marginLeft: 16 }}>
             <FavoriteBtn
@@ -185,7 +189,8 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
                 }}
               >
                 <p style={{ margin: 0, fontSize: "13px", color: "var(--text-light)" }}>
-                  {c.user?.name || "匿名"} · {c.createdAt.toLocaleString()}
+                {c.user?.name || "匿名"} · <RelativeTime time={c.createdAt} />
+
                 </p>
                 <p style={{ margin: "6px 0 0", color: "var(--text)" }}>{c.content}</p>
               </div>
@@ -221,7 +226,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
                     {rb.title}
                   </p>
                   <p style={{ margin: "4px 0 0", color: "var(--text-light)", fontSize: "13px" }}>
-                    {rb.category} · 📖 阅读量 {rb.views} · {rb.createdAt.toLocaleString()}
+                    {rb.category} · 📖 阅读量 {rb.views} · <RelativeTime time={rb.createdAt} />
                   </p>
                 </div>
               </Link>

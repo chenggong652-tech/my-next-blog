@@ -1,6 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { useActionState } from "react";
+import ImageUploader from "@/app/components/ImageUploader";
 import { createBlog } from "../actions";
 import { useToast } from "@/app/components/Toast";  // ✅导入弹窗工具
 
@@ -36,19 +37,10 @@ useEffect(() => {
       </div>
       <div>
       <div>
-        <label style={{ fontWeight: "bold" }}>封面图地址（可选）</label>
-        <input
-          name="coverImage"
-          placeholder="粘贴图片网址，如 https://... 不填就没有封面"
-          style={{
-            width: "100%",
-            padding: "10px",
-            marginTop: "6px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-            fontSize: "16px",
-          }}
-        />
+      <label style={{ fontWeight: "bold" }}>封面图（可选，从电脑选或粘贴外链）</label>
+        <div style={{ marginTop: 6 }}>
+          <ImageUploader />
+        </div>
       </div>
       
       <div>

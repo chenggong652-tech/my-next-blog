@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import ViewHistory from "@/app/components/ViewHistory";
+import RelativeTime from "@/app/components/RelativeTime";
+import { unstable_cache } from "next/cache";
 
 // 统计卡片的长相（4个卡片共用）
 const statCard: React.CSSProperties = {
@@ -11,36 +14,57 @@ const statCard: React.CSSProperties = {
   boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
 };
 
-export default async function HomePage() {
-  // 取最新3篇博客
-  const latestBlogs = await prisma.blog.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 3,
-    include: { user: true },
-  });
-  
-  // 取阅读量最高的3篇文章（热门榜）
-  const hotBlogs = await prisma.blog.findMany({
-    orderBy: { views: "desc" },   // 按阅读量从高到低排
-    take: 3,                      // 只取前3名
-    include: { user: true },      // 顺便查出作者
-  });
+// 🧠 缓存函数：把首页所有数据库查询包起来
+// 第一次访问 → 查库并存起来；60秒内再来 → 直接复用，不跨洋查库 → 秒开
+const getHomeData = unstable_cache(
+  async () => {
+    // 取最新3篇博客
+    const latestBlogs = await prisma.blog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      include: { user: true },
+    });
 
-  // 取最新3条留言
-  const latestMessages = await prisma.message.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 3,
-    include: { user: true },
-  });
-  
-  // ====== 统计看板数据（聚合计算）======
-  const [blogCount, messageCount, userCount, viewsResult] = await Promise.all([
-    prisma.blog.count(),                                  // 数文章有几篇
-    prisma.message.count(),                               // 数留言有几条
-    prisma.user.count(),                                  // 数用户有几个
-    prisma.blog.aggregate({ _sum: { views: true } }),     // 所有文章阅读量加起来
-  ]);
-  const totalViews = viewsResult._sum.views ?? 0;         // 求和结果；没有文章时是 null，就按 0 算
+    // 取阅读量最高的3篇文章（热门榜）
+    const hotBlogs = await prisma.blog.findMany({
+      orderBy: { views: "desc" },   // 按阅读量从高到低排
+      take: 3,                      // 只取前3名
+      include: { user: true },      // 顺便查出作者
+    });
+
+    // 取最新3条留言
+    const latestMessages = await prisma.message.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      include: { user: true },
+    });
+
+    // ====== 统计看板数据（聚合计算）======
+    const [blogCount, messageCount, userCount, viewsResult] = await Promise.all([
+      prisma.blog.count(),                                  // 数文章有几篇
+      prisma.message.count(),                               // 数留言有几条
+      prisma.user.count(),                                  // 数用户有几个
+      prisma.blog.aggregate({ _sum: { views: true } }),     // 所有文章阅读量加起来
+    ]);
+
+    // 把6组数据打包返回
+    return {
+      latestBlogs,
+      hotBlogs,
+      latestMessages,
+      blogCount,
+      messageCount,
+      userCount,
+      totalViews: viewsResult._sum.views ?? 0,
+    };
+  },
+  ["home-data"],    // 缓存的"钥匙"（给缓存起名字，以后想手动清用它）
+  { revalidate: 60 } // 60秒后作废重新查（数据不会一直旧）
+);
+
+export default async function HomePage() {
+  // 从缓存拿数据（第一次查库，60秒内直接复用 → 秒开）
+  const { latestBlogs, hotBlogs, latestMessages, blogCount, messageCount, userCount, totalViews } = await getHomeData();
 
   return (
     <main style={{ maxWidth: "900px", margin: "40px auto", padding: "0 20px" }}>
@@ -56,6 +80,8 @@ export default async function HomePage() {
           </Link>
         </div>
       </div>
+            {/* 最近看过：从浏览器小仓库读记录 */}
+            <ViewHistory />
 
       {/* 📊 网站数据统计：4个数字小卡片 */}
       <div
@@ -111,7 +137,7 @@ export default async function HomePage() {
                     <Link href={`/profile/${blog.userId}`} style={{color:"#2563eb"}}>
                       {blog.user?.name || "匿名"}
                     </Link>
-                    &nbsp;{blog.createdAt.toLocaleString()}
+                    &nbsp;<RelativeTime time={blog.createdAt} />
                   </p>
                 </div>
               ))
@@ -145,7 +171,8 @@ export default async function HomePage() {
                     <Link href={`/profile/${msg.userId}`} style={{color:"#2563eb"}}>
                       {msg.user?.name || "匿名"}
                     </Link>
-                    &nbsp;{msg.createdAt.toLocaleString()}
+                    &nbsp;<RelativeTime time={msg.createdAt} />
+
                   </p>
                   <p style={{marginTop:6}}>{msg.content}</p>
                 </div>

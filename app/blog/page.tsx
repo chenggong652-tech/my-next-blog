@@ -3,6 +3,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import type { Metadata } from "next";
+import RelativeTime from "@/app/components/RelativeTime";
+import { unstable_cache } from "next/cache";
 
 export const metadata: Metadata = {
   title: "博客列表",
@@ -30,19 +32,29 @@ export default async function BlogPage({
     if (currentCategory !== "全部") where.category = currentCategory;
     if (currentTag) where.tags = { some: { tag: { name: currentTag } } };
   
-  // 查询当前页文章
-  const blogList = await prisma.blog.findMany({
-    where,
-    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
-    include: { user: true, tags: { include: { tag: true } } },
-    skip: skip,
-    take: PAGE_SIZE,
-  });
+      // 🧠 缓存函数：把文章列表查询包起来（复用上一课技能）
+  // 钥匙带参数：不同页/分类/标签 = 不同缓存，各存一份不串数据
+  const getBlogList = unstable_cache(
+    async () => {
+      const blogList = await prisma.blog.findMany({
+        where,
+        orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+        include: { user: true, tags: { include: { tag: true } } },
+        skip: skip,
+        take: PAGE_SIZE,
+      });
+      const totalCount = await prisma.blog.count({ where });
+      return { blogList, totalCount };
+    },
+    ["blog-list", String(currentPage), currentCategory, currentTag], // 钥匙带参数（新知识）；String()把数字变字符串，钥匙只能装字符串
+    { revalidate: 60 } // 60秒后作废
+  );
 
-  // 查询总共有多少篇文章，用来算总页数
-  const totalCount = await prisma.blog.count({ where });
+  // 从缓存拿列表（不同条件不同缓存，60秒内直接复用 → 秒开）
+  const { blogList, totalCount } = await getBlogList();
   const totalPage = Math.ceil(totalCount / PAGE_SIZE);
   const allTags = await prisma.tag.findMany({ orderBy: { name: "asc" } });
+
 
   return (
     <main style={{ maxWidth: "800px", margin: "40px auto" }}>
@@ -178,7 +190,7 @@ export default async function BlogPage({
                 <Link href={`/profile/${item.userId}`} style={{ color: "var(--link)" }}>
                   {item.user?.name || "匿名"}
                 </Link>
-                发布于 {item.createdAt.toLocaleString()}
+                发布于 <RelativeTime time={item.createdAt} />
               </p>
             </div>
           ))

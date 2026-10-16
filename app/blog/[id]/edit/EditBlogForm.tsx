@@ -4,6 +4,7 @@ import Link from "next/link";
 import { updateBlog } from "../../actions";
 import { useEffect } from "react";
 import { useToast } from "@/app/components/Toast";  // ✅导入弹窗工具
+import ImageUploader from "@/app/components/ImageUploader";
 
 // 编辑文章表单（客户端组件）
 // 通过 props 接收文章原来的数据，显示在输入框里
@@ -53,20 +54,10 @@ export default function EditBlogForm({
         />
       </div>
       <div>
-        <label style={{ fontWeight: "bold" }}>封面图地址（可选）</label>
-        <input
-          name="coverImage"
-          defaultValue={blogCover}
-          placeholder="粘贴图片网址，如 https://... 不填就没有封面"
-          style={{
-            width: "100%",
-            padding: "10px",
-            marginTop: "6px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-            fontSize: "16px",
-          }}
-        />
+      <label style={{ fontWeight: "bold" }}>封面图（可选，从电脑选或粘贴外链）</label>
+        <div style={{ marginTop: 6 }}>
+          <ImageUploader initialCover={blogCover} />
+        </div>
       </div>
       <div>
         <label style={{ fontWeight: "bold" }}>文章分类</label>

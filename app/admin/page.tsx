@@ -3,6 +3,7 @@ import { isAdmin } from "@/lib/admin";
 import Link from "next/link";
 import type { Metadata } from "next";
 import AdminDeleteBtn from "@/app/components/AdminDeleteBtn";
+import AdminCommentDeleteBtn from "@/app/components/AdminCommentDeleteBtn";
 
 // 后台专属 SEO：独立标题 + 永不收录（就算将来全站开放收录，后台也进不了搜索引擎）
 export const metadata: Metadata = {
@@ -65,6 +66,13 @@ export default async function AdminPage() {
     orderBy: { createdAt: "asc" },
     include: { _count: { select: { blogs: true } } },
   });
+
+    // 5. 所有评论（连带"谁评论的"+"评论哪篇"，最新的在前）
+    const allComments = await prisma.comment.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { user: true, blog: true },
+    });
+  
 
   return (
     <main style={{ maxWidth: "900px", margin: "0 auto", padding: "24px" }}>
@@ -139,6 +147,12 @@ export default async function AdminPage() {
               <p style={{ margin: "4px 0 0", color: "var(--text-light)", fontSize: "13px" }}>
                 {b.user?.name || "匿名"} · {b.category} · 📖 {b.views}
               </p>
+              {b.status === "draft" && (
+                <span style={{ display: "inline-block", marginTop: "6px", padding: "2px 8px", borderRadius: "4px", background: "#fef9c3", color: "#854d0e", fontSize: "12px" }}>
+                  📝 草稿
+                </span>
+              )}
+
             </div>
             <AdminDeleteBtn blogId={b.id} />
           </div>
@@ -173,6 +187,37 @@ export default async function AdminPage() {
             </span>
           </div>
         ))}
+      </div>
+
+      {/* 评论管理：所有评论，管理员可删 */}
+      <h2 style={{ fontSize: "22px", marginTop: "40px" }}>💬 评论管理（{allComments.length}）</h2>
+      <div style={{ marginTop: "12px" }}>
+        {allComments.map((c) => (
+          <div
+            key={c.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              border: "1px solid var(--card-border)",
+              padding: "10px 16px",
+              marginTop: "8px",
+              borderRadius: "10px",
+              background: "var(--card-bg)",
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: 0, wordBreak: "break-word" }}>{c.content}</p>
+              <p style={{ margin: "4px 0 0", color: "var(--text-light)", fontSize: "13px" }}>
+                {c.user?.name || "匿名"} · 评论于《{c.blog.title}》 · {c.createdAt.toLocaleString()}
+              </p>
+            </div>
+            <AdminCommentDeleteBtn commentId={c.id} />
+          </div>
+        ))}
+        {allComments.length === 0 && (
+          <p style={{ color: "var(--text-light)", fontSize: "14px" }}>还没有评论</p>
+        )}
       </div>
 
     </main>

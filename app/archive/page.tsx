@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 export default async function ArchivePage() {
   // 查所有文章（只取标题和发布时间，轻量）
   const blogs = await prisma.blog.findMany({
+    where: { status: "published" }, // 只归档已发布的
     orderBy: { createdAt: "desc" },
     select: { id: true, title: true, createdAt: true },
   });

@@ -39,6 +39,7 @@ model Blog {
   category  String   @default("未分类") // 文章分类，默认"未分类"
   pinned    Boolean  @default(false) // 是否置顶：true=置顶
   coverImage String? // 封面图片地址（可空：不填就不显示封面）
+  status    String   @default("published") // 文章状态：published=已发布，draft=草稿
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   userId    String
@@ -68,6 +69,7 @@ model User {
   favorites Favorite[] // 这个用户收藏了哪些文章
   comments Comment[] // 这个用户发表的评论
   commentLikes CommentLike[] // 这个用户给哪些评论点过赞
+  commentReplies CommentReply[] // 这个用户发的评论回复
 }
 
 model Account {
@@ -168,6 +170,7 @@ model Comment {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
   likes CommentLike[] // 这条评论收到的点赞
+  replies CommentReply[] // 这条评论收到的回复
 }
 
 // 评论点赞表：记录"哪个用户给哪条评论点过赞"（和收藏表一个套路）
@@ -181,5 +184,17 @@ model CommentLike {
   comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
   @@unique([userId, commentId]) // 联合唯一：同一用户对同一条评论只能赞一次
+}
+
+// 评论回复表：一条评论可以有多条回复
+model CommentReply {
+  id        String   @id @default(cuid())
+  commentId String
+  content   String
+  createdAt DateTime @default(now())
+  userId    String
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 }
 

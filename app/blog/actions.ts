@@ -24,6 +24,8 @@ export async function createBlog(
   const category = (formData.get("category") as string) || "未分类";
   const coverImage = (formData.get("coverImage") as string) || "";
   const tags = formData.getAll("tags") as string[]; // 勾选的多个标签名
+  const status = (formData.get("status") as string) || "published";
+
 
 
   // 校验规则（关键教学点）：哪里不对，就把错误信息返回给页面显示
@@ -38,6 +40,7 @@ export async function createBlog(
       content: content.trim(),
       category: category,
       coverImage: coverImage.trim(),
+      status: status,
       userId: session.user.id, // 记录作者是谁
       // 挂标签：勾选的标签名，数据库没有就自动创建（connectOrCreate）
       tags: {
@@ -66,6 +69,7 @@ export async function updateBlog(
   const category = (formData.get("category") as string) || "未分类";
   const pinned = formData.get("pinned") === "on";
   const coverImage = (formData.get("coverImage") as string) || "";
+  const status = (formData.get("status") as string) || "published";
 
   if (!title.trim()) return { error: "标题不能为空" };
   if (!content.trim()) return { error: "内容不能为空" };
@@ -81,7 +85,7 @@ export async function updateBlog(
 
   await prisma.blog.update({
     where: { id },
-        data: { title: title.trim(), content: content.trim(), category: category, pinned, coverImage: coverImage.trim() },
+        data: { title: title.trim(), content: content.trim(), category: category, pinned, coverImage: coverImage.trim(), status: status },
   });
   revalidatePath("/blog");
   revalidatePath(`/blog/${id}`);
@@ -92,7 +96,7 @@ export async function updateBlog(
 export async function deleteBlog(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { success: false, msg: "请先登录" };
-
+ 
   const id = formData.get("id") as string;
   if (!id) return { success: false, msg: "缺少文章编号" };
 

@@ -21,3 +21,19 @@ export async function adminDeleteBlog(formData: FormData) {
   revalidatePath("/blog");
   return { success: true };
 }
+// 后台删除评论：只有管理员能用
+export async function adminDeleteComment(formData: FormData) {
+  // 1. 管理员检查
+  if (!(await isAdmin())) return { success: false, msg: "没有权限" };
+
+  // 2. 从"袋子"里拿评论id
+  const id = String(formData.get("id") || "");
+  if (!id) return { success: false, msg: "参数错误" };
+
+  // 3. 删除评论
+  await prisma.comment.delete({ where: { id } });
+
+  // 4. 刷新后台
+  revalidatePath("/admin");
+  return { success: true };
+}

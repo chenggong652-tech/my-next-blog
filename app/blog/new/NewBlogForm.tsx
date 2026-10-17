@@ -106,21 +106,21 @@ useEffect(() => {
         </p>
       )}
 
-      <button
-        type="submit"
-        style={{
-          width: "fit-content",
-          padding: "10px 24px",
-          borderRadius: "8px",
-          border: "none",
-          background: "#2563eb",
-          color: "#ffffff",
-          cursor: "pointer",
-          fontSize: "16px",
-        }}
-      >
-        提交发布
-      </button>
+<div style={{ display: "flex", gap: "12px" }}>
+        <button
+          type="submit" name="status" value="draft"
+          style={{ padding: "10px 24px", borderRadius: "8px", border: "1px solid #d1d5db", background: "#ffffff", cursor: "pointer", fontSize: "16px" }}
+        >
+          💾 存为草稿
+        </button>
+        <button
+          type="submit" name="status" value="published"
+          style={{ padding: "10px 24px", borderRadius: "8px", border: "none", background: "#2563eb", color: "#ffffff", cursor: "pointer", fontSize: "16px" }}
+        >
+          🚀 立即发布
+        </button>
+      </div>
+
     </form>
   );
 }

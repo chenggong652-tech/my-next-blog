@@ -24,3 +24,26 @@ export async function addComment(blogId: string, formData: FormData) {
   revalidatePath(`/blog/${blogId}`);
   return { success: true, msg: "评论成功" };
 }
+
+// 提交评论回复：只有登录用户能回复
+export async function addCommentReply(blogId: string, formData: FormData) {
+  // 1. 检查登录
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, msg: "请先登录再回复" };
+
+  // 2. 取数据（回复哪条评论 + 回复内容）
+  const commentId = String(formData.get("commentId") || "");
+  const content = String(formData.get("content") || "").trim();
+  if (!commentId) return { success: false, msg: "参数错误" };
+  if (!content) return { success: false, msg: "回复内容不能为空" };
+  if (content.length > 300) return { success: false, msg: "回复最多300字" };
+
+  // 3. 写进数据库
+  await prisma.commentReply.create({
+    data: { content, commentId, userId: session.user.id },
+  });
+
+  // 4. 刷新页面（新回复立即出现）
+  revalidatePath(`/blog/${blogId}`);
+  return { success: true, msg: "回复成功" };
+}

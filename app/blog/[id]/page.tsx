@@ -8,6 +8,7 @@ import ReadingProgress from "@/app/components/ReadingProgress";
 import ShareBtn from "@/app/components/ShareBtn";
 import CommentForm from "@/app/components/CommentForm";
 import CommentLikeBtn from "@/app/components/CommentLikeBtn";
+import CommentReplyBox from "@/app/components/CommentReplyBox";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -47,8 +48,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
-export default async function BlogDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function BlogDetailPage({ params, searchParams }: { params: Promise<{ id: string }>, searchParams: Promise<{ cpage?: string }> }) {
   const { id } = await params;
+  // 评论分页参数：URL 上 ?cpage=2 就是第2页（没有就默认第1页）
+  const commentPage = Math.max(1, Number((await searchParams)?.cpage) || 1);
 
   // 获取登录状态
   const session = await auth();
@@ -83,15 +86,24 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
     orderBy: { createdAt: "desc" },
     take: 3,
   });
-    // 评论区数据：这篇文章的所有评论（连带作者信息一起查）
-    const comments = await prisma.comment.findMany({
-      where: { blogId: blog.id },
-      orderBy: { createdAt: "desc" }, // 最新的在最上面
-      include: {
-        user: true, // 顺带查出每条评论的作者
-        _count: { select: { likes: true } }, // 顺带数每条评论的点赞数
-      },
-    });
+        // 评论区数据：这篇文章的评论（每页5条，连带回复和作者）
+        const COMMENT_PAGE_SIZE = 5; // 每页显示 5 条评论
+        const [comments, commentTotal] = await Promise.all([
+          prisma.comment.findMany({
+            where: { blogId: blog.id },
+            orderBy: { createdAt: "desc" }, // 最新的在最上面
+            skip: (commentPage - 1) * COMMENT_PAGE_SIZE, // 跳过前面几页的条数
+            take: COMMENT_PAGE_SIZE,                     // 只取这一页的条数
+            include: {
+              user: true, // 顺带查出每条评论的作者
+              _count: { select: { likes: true } }, // 顺带数每条评论的点赞数
+              replies: { include: { user: true }, orderBy: { createdAt: "asc" } }, // 回复（连带回复作者，从旧到新）
+            },
+          }),
+          prisma.comment.count({ where: { blogId: blog.id } }), // 评论总数（算分页用）
+        ]);
+        const commentTotalPage = Math.ceil(commentTotal / COMMENT_PAGE_SIZE); // 总共有几页
+    
 
     // 当前用户给哪些评论点过赞（收藏按钮的套路：查"我赞过的"集合）
     const myLikes = session?.user?.id
@@ -239,39 +251,75 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ id:
 
         {/* 评论区：文章下方直接聊天 */}
         <div style={{ marginTop: "32px", borderTop: "1px solid var(--card-border)", paddingTop: "24px" }}>
-          <h3 style={{ fontSize: "20px" }}>💬 评论（{comments.length}）</h3>
+        <h3 style={{ fontSize: "20px" }}>💬 评论（{commentTotal}）</h3>
 
-          {/* 评论列表 */}
-          {comments.length === 0 ? (
-            <p style={{ color: "var(--text-light)", fontSize: "14px" }}>还没有评论，来抢沙发！</p>
-          ) : (
-            comments.map((c) => (
-              <div
-                key={c.id}
-                style={{
-                  border: "1px solid var(--card-border)",
-                  padding: "12px 16px",
-                  marginTop: "10px",
-                  borderRadius: "10px",
-                  background: "var(--card-bg)",
-                }}
-              >
-                <p style={{ margin: 0, fontSize: "13px", color: "var(--text-light)" }}>
-                {c.user?.name || "匿名"} · <RelativeTime time={c.createdAt} />
+{/* 评论列表 */}
+{comments.length === 0 ? (
+  <p style={{ color: "var(--text-light)", fontSize: "14px" }}>还没有评论，来抢沙发！</p>
+) : (
+  comments.map((c) => (
+    <div
+      key={c.id}
+      style={{
+        border: "1px solid var(--card-border)",
+        padding: "12px 16px",
+        marginTop: "10px",
+        borderRadius: "10px",
+        background: "var(--card-bg)",
+      }}
+    >
+      <p style={{ margin: 0, fontSize: "13px", color: "var(--text-light)" }}>
+      {c.user?.name || "匿名"} · <RelativeTime time={c.createdAt} />
 
-                </p>
-                <p style={{ margin: "6px 0 0", color: "var(--text)" }}>{c.content}</p>
-                
-                <div style={{ marginTop: "8px" }}>
-                  <CommentLikeBtn commentId={c.id} initialLiked={likedSet.has(c.id)} initialCount={c._count.likes} />
-                </div>
+      </p>
+      <p style={{ margin: "6px 0 0", color: "var(--text)" }}>{c.content}</p>
+      
+      <div style={{ marginTop: "8px", display: "flex", gap: "12px" }}>
+        <CommentLikeBtn commentId={c.id} initialLiked={likedSet.has(c.id)} initialCount={c._count.likes} />
+        <CommentReplyBox blogId={blog.id} commentId={c.id} />
+      </div>
 
-              </div>
-            ))
-          )}
+      {/* 这条评论的回复列表 */}
+      {c.replies.length > 0 && (
+        <div style={{ marginTop: "10px", borderLeft: "3px solid var(--card-border)", paddingLeft: "12px" }}>
+          {c.replies.map((r) => (
+            <div key={r.id} style={{ marginTop: "8px" }}>
+              <p style={{ margin: 0, fontSize: "12px", color: "var(--text-light)" }}>
+                {r.user?.name || "匿名"} 回复 · <RelativeTime time={r.createdAt} />
+              </p>
+              <p style={{ margin: "4px 0 0", fontSize: "14px", color: "var(--text)" }}>{r.content}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  ))
+)}
 
-          {/* 评论输入框 */}
-          <CommentForm blogId={blog.id} />
+{/* 评论分页：评论多了，一页看不下 */}
+{commentTotalPage > 1 && (
+  <div style={{ display: "flex", gap: "12px", marginTop: "16px", alignItems: "center" }}>
+    {commentPage <= 1 ? (
+      <button disabled style={{ opacity: 0.4, cursor: "not-allowed" }}>上一页</button>
+    ) : (
+      <Link href={`/blog/${blog.id}?cpage=${commentPage - 1}`}>
+        <button>上一页</button>
+      </Link>
+    )}
+    <span>{commentPage} / {commentTotalPage}</span>
+    {commentPage >= commentTotalPage ? (
+      <button disabled style={{ opacity: 0.4, cursor: "not-allowed" }}>下一页</button>
+    ) : (
+      <Link href={`/blog/${blog.id}?cpage=${commentPage + 1}`}>
+        <button>下一页</button>
+      </Link>
+    )}
+  </div>
+)}
+
+{/* 评论输入框 */}
+<CommentForm blogId={blog.id} />
+
         </div>
 
 

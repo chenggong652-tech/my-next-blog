@@ -25,7 +25,7 @@ export default async function RootLayout({
   // 获取登录状态：登录了是对象，没登录是 null
   const session = await auth();
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       {/* body：背景去"颜色仓库"取货（白天渐变 / 黑夜深色） */}
       <body
         className={inter.className}

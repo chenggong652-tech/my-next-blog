@@ -20,6 +20,7 @@ const getHomeData = unstable_cache(
   async () => {
     // 取最新3篇博客
     const latestBlogs = await prisma.blog.findMany({
+      where: { status: "published" },
       orderBy: { createdAt: "desc" },
       take: 3,
       include: { user: true },
@@ -27,6 +28,7 @@ const getHomeData = unstable_cache(
 
     // 取阅读量最高的3篇文章（热门榜）
     const hotBlogs = await prisma.blog.findMany({
+      where: { status: "published" },
       orderBy: { views: "desc" },   // 按阅读量从高到低排
       take: 3,                      // 只取前3名
       include: { user: true },      // 顺便查出作者
@@ -41,7 +43,7 @@ const getHomeData = unstable_cache(
 
     // ====== 统计看板数据（聚合计算）======
     const [blogCount, messageCount, userCount, viewsResult] = await Promise.all([
-      prisma.blog.count(),                                  // 数文章有几篇
+      prisma.blog.count({ where: { status: "published" } }), // 数已发布的文章有几篇
       prisma.message.count(),                               // 数留言有几条
       prisma.user.count(),                                  // 数用户有几个
       prisma.blog.aggregate({ _sum: { views: true } }),     // 所有文章阅读量加起来

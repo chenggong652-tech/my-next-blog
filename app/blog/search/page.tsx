@@ -14,6 +14,7 @@ export default async function BlogSearchPage({
   const results = keyword
     ? await prisma.blog.findMany({
         where: {
+          status: "published",   // 只搜已发布的
           OR: [
             { title: { contains: keyword } },
             { content: { contains: keyword } },

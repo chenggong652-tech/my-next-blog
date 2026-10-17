@@ -29,6 +29,7 @@ export default async function BlogPage({
 
     // 组合筛选条件：分类（有就筛）+ 标签（有就筛）
     const where: any = {};
+    where.status = "published"; // 只显示已发布的
     if (currentCategory !== "全部") where.category = currentCategory;
     if (currentTag) where.tags = { some: { tag: { name: currentTag } } };
   

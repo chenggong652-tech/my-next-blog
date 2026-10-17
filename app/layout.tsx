@@ -11,6 +11,10 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "我的Next学习网站",
   description: "零基础学习Next",
+  robots: {
+    index: false,   // 不收录本页
+    follow: false,  // 不追踪本页链接
+  },
 };
 
 export default async function RootLayout({

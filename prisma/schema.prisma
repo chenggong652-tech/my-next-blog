@@ -198,3 +198,10 @@ model CommentReply {
   comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 }
 
+// 访问记录表：每次打开网站记一行（按天统计全站访问量）
+model Visit {
+  id        String   @id @default(cuid())
+  date      String   // 访问日期：2026-10-18（北京时间）
+  createdAt DateTime @default(now())
+}
+

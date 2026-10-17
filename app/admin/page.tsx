@@ -122,7 +122,12 @@ export default async function AdminPage() {
           <a href="/api/export?type=users" style={btn}>👥 导出用户</a>
         </div>
       </div>
-      
+
+    
+      <Link href="/stats" style={{ color: "var(--link)", display: "inline-block", marginTop: "16px" }}>
+        📊 访问统计 →
+      </Link>
+
       {/* 文章管理：所有文章，管理员可删 */}
       <h2 style={{ fontSize: "22px", marginTop: "40px" }}>📝 文章管理（{allBlogs.length}）</h2>
       <div style={{ marginTop: "12px" }}>

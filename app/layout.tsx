@@ -6,6 +6,9 @@ import "./globals.css";
 import { ToastProvider } from "@/app/components/Toast";
 import ThemeToggle from "@/app/components/ThemeToggle";
 import { isAdmin } from "@/lib/admin";
+import VisitTracker from "@/app/components/VisitTracker";
+import InstallButton from "@/app/components/InstallButton";
+import ServiceWorkerRegister from "@/app/components/ServiceWorkerRegister";
 
 const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
@@ -36,6 +39,8 @@ export default async function RootLayout({
         }}
       >
         {/* 全局导航栏，所有页面顶部都会出现 */}
+        <VisitTracker />
+        <ServiceWorkerRegister />
         <nav
   className="p-4 flex gap-6 items-center"
   style={{
@@ -54,6 +59,7 @@ export default async function RootLayout({
           <Link href="/users" className="text-blue-600">用户列表</Link>
           <Link href="/blog" className="text-blue-600">博客列表</Link>
           <Link href="/blog-search" className="text-blue-600">博客搜索</Link>
+          <Link href="/hot" className="text-blue-600">🔥热门榜单</Link>
           <Link href="/message" className="text-blue-600">留言板</Link>
           <Link href="/tags" className="text-blue-600">🏷️标签</Link>
           <Link href="/archive" className="text-blue-600">🗂️归档</Link>
@@ -63,6 +69,7 @@ export default async function RootLayout({
             <ThemeToggle />
             {session ? (
               <>
+                <InstallButton />
                 <Link href="/favorites" className="text-blue-600">❤️收藏</Link>
                 {await isAdmin() && (
                   <Link href="/admin" className="text-blue-600">⚙️后台</Link>
@@ -81,6 +88,30 @@ export default async function RootLayout({
         <ToastProvider>
           <main>{children}</main>
         </ToastProvider>
+
+        {/* 页脚：网站的"信息门牌"（版权/联系/备案） */}
+        <footer
+          style={{
+            borderTop: "1px solid var(--card-border)",
+            marginTop: "48px",
+            padding: "24px 20px 32px",
+            textAlign: "center",
+            fontSize: "14px",
+          }}
+        >
+          <p style={{ margin: "0 0 8px", color: "var(--text)", fontWeight: 600 }}>
+            © 2026 AizyBase · AI 学习与资源分享
+          </p>
+          <p style={{ margin: "0 0 8px", color: "var(--text-light)" }}>
+            联系邮箱：
+            <a href="mailto:contact@aizybase.com" style={{ color: "var(--link)" }}>
+              contact@aizybase.com
+            </a>
+          </p>
+          <p style={{ margin: 0, fontSize: "12px", color: "var(--text-light)" }}>
+            闽ICP备XXXXXXXX号-1（备案后替换）· Powered by Next.js
+          </p>
+        </footer>
       </body>
     </html>
   );

@@ -129,6 +129,21 @@ export default async function BlogDetailPage({ params, searchParams }: { params:
 
   
   return (
+    <>
+    {/* JSON-LD 结构化数据：给搜索引擎看的文章"身份证"（访客看不见，不影响页面显示） */}
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BlogPosting",
+          headline: blog.title,
+          datePublished: blog.createdAt.toISOString(),
+          author: { "@type": "Person", name: blog.user?.name || "匿名" },
+          image: blog.coverImage || undefined,
+        }),
+      }}
+    />
     <main style={{ maxWidth: "800px", margin: "40px auto" }}>
               {/* 阅读量计数：页面打开时自动触发（防刷版） */}
               <ViewCounter blogId={blog.id} />
@@ -214,7 +229,15 @@ export default async function BlogDetailPage({ params, searchParams }: { params:
             color: "var(--text)",
           }}
         >
-          <ReactMarkdown>{blog.content}</ReactMarkdown>
+          <ReactMarkdown
+  components={{
+    img: (props) => (
+      <img {...props} loading="lazy" style={{ maxWidth: "100%" }} />
+    ),
+  }}
+>
+  {blog.content}
+</ReactMarkdown>
         </div>
 
         {/* 上一篇/下一篇导航：看完正文，顺着读 */}
@@ -377,5 +400,6 @@ export default async function BlogDetailPage({ params, searchParams }: { params:
         )}
       </div>
     </main>
+    </>
   );
 }

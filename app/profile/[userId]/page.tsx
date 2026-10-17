@@ -14,6 +14,11 @@ async function getUserData(userId: string) {
         orderBy: { createdAt: "desc" },
         take: 10, // 最多显示最近 10 条留言
       },
+      favorites: {
+        orderBy: { createdAt: "desc" },
+        take: 10, // 最多显示最近收藏的 10 篇
+        include: { blog: true }, // 顺带查出每篇收藏的文章
+      },
     },
   });
   return user;
@@ -69,6 +74,7 @@ export default async function UserPage({ params }: { params: Promise<{ userId: s
                 <img
                   src={blog.coverImage}
                   alt={blog.title}
+                  loading="lazy"
                   style={{ width: "100%", height: "120px", objectFit: "cover", borderRadius: "8px", marginBottom: "10px" }}
                 />
               )}
@@ -99,6 +105,33 @@ export default async function UserPage({ params }: { params: Promise<{ userId: s
               <p style={{ fontSize: "13px", color: "var(--text-light)", margin: 0 }}>{msg.createdAt.toLocaleString()}</p>
               <p style={{ marginTop: 8 }}>{msg.content}</p>
             </div>
+          ))
+        )}
+      </div>
+
+      <h2 style={{ fontSize: "20px" }}>收藏的文章</h2>
+      <div style={{ margin: "16px 0" }}>
+        {userData.favorites.length === 0 ? (
+          <p style={{ color: "var(--text-light)" }}>还没有收藏</p>
+        ) : (
+          userData.favorites.map((fav) => (
+            <Link href={`/blog/${fav.blog.id}`} key={fav.id}>
+              <div
+                style={{
+                  border: "1px solid var(--card-border)",
+                  padding: 16,
+                  marginBottom: 12,
+                  borderRadius: 10,
+                  background: "var(--card-bg)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                }}
+              >
+                <h3 style={{ margin: 0, color: "var(--link)" }}>{fav.blog.title}</h3>
+                <p style={{ color: "var(--text-light)", fontSize: "14px", marginTop: 8 }}>
+                  {fav.blog.category} · 📖 {fav.blog.views}
+                </p>
+              </div>
+            </Link>
           ))
         )}
       </div>

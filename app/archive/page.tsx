@@ -1,7 +1,13 @@
 // app/archive/page.tsx
 // 文章归档：按月份分组列出所有文章
 import Link from "next/link";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+
+export const metadata: Metadata = {
+  title: "🗂️ 文章归档 | AizyBase",
+  description: "按时间浏览全部文章归档，按月查看历史发布记录",
+};
 
 export default async function ArchivePage() {
   // 查所有文章（只取标题和发布时间，轻量）

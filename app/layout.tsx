@@ -9,8 +9,8 @@ import { isAdmin } from "@/lib/admin";
 
 const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
-  title: "我的Next学习网站",
-  description: "零基础学习Next",
+  title: "AizyBase - AI 学习与资源分享",
+  description: "零基础学 AI：从智能体、Coze 工作流，到 AI 写作绘画，一步步玩转人工智能",
   robots: {
     index: false,   // 不收录本页
     follow: false,  // 不追踪本页链接

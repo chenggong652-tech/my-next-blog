@@ -25,13 +25,22 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!blog) {
     return { title: "文章不存在" };
   }
+  // 清洗 Markdown 排版符号（# * > ` - [ ] ( ) ! 等），把正文变成纯文字
+  const plain = blog.content
+    .replace(/[#>*`\-\[\]()!]/g, "")
+    .replace(/\s+/g, " ")          // 多个空格/换行合并成一个空格
+    .trim();
+  // 截取正文前 60 个字当摘要，超过就加省略号
+  const description = plain.slice(0, 60) + (plain.length > 60 ? "…" : "");
+
   return {
-    title: blog.title,
-    description: `阅读文章：${blog.title}`,
+    // 标题加品牌后缀：分享/搜索显示"文章标题 | AizyBase"
+    title: `${blog.title} | AizyBase`,
+    description: description,
     // 社交分享卡片：发微信/朋友圈时，对方看到的小卡片内容
     openGraph: {
       title: blog.title,
-      description: `阅读文章：${blog.title}`,
+      description: description,
       type: "article",
       images: blog.coverImage ? [{ url: blog.coverImage }] : undefined,
     },

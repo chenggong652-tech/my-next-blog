@@ -1,7 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/admin";
 import Link from "next/link";
+import type { Metadata } from "next";
 import AdminDeleteBtn from "@/app/components/AdminDeleteBtn";
+
+// 后台专属 SEO：独立标题 + 永不收录（就算将来全站开放收录，后台也进不了搜索引擎）
+export const metadata: Metadata = {
+  title: "⚙️ 后台管理 | AizyBase",
+  robots: { index: false, follow: false },
+};
 
 // 备份按钮的长相
 const btn: React.CSSProperties = {

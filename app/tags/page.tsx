@@ -1,7 +1,13 @@
 // app/tags/page.tsx
 // 标签云：所有标签 + 每篇文章数，点标签去筛选
 import Link from "next/link";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+
+export const metadata: Metadata = {
+  title: "🏷️ 标签 | AizyBase",
+  description: "按标签浏览所有 AI 文章：智能体、Coze、提示词、AI写作、AI绘画等分类",
+};
 
 export default async function TagsPage() {
   // 查所有标签 + 数每标签挂了多少文章（_count 聚合）

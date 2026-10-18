@@ -5,6 +5,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/app/components/Toast";
 import ThemeToggle from "@/app/components/ThemeToggle";
+import { PlayerProvider } from "@/app/components/PlayerProvider";
+import MiniPlayer from "@/app/components/MiniPlayer";
 import { isAdmin } from "@/lib/admin";
 import VisitTracker from "@/app/components/VisitTracker";
 import InstallButton from "@/app/components/InstallButton";
@@ -45,8 +47,8 @@ export default async function RootLayout({
   className="main-nav p-4 flex gap-6 items-center"
 
   style={{
-    background: "#ffffff",
-    borderBottom: "1px solid #e5e7eb",
+    background: "var(--nav-bg)",        // 跟随主题：白天白 / 黑夜深灰
+    borderBottom: "1px solid var(--nav-border)",
     boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
     scrollbarWidth: "thin",    // ④ 滚动条细一点，好看
   }}
@@ -83,10 +85,14 @@ export default async function RootLayout({
           </div>
         </nav>
 
-        {/* ToastProvider 包住页面内容：全站都能用右上角弹窗 */}
-        <ToastProvider>
-          <main>{children}</main>
-        </ToastProvider>
+        {/* 全局播放器（音频+状态，全站共享）+ 全站悬浮迷你条 */}
+        <PlayerProvider>
+          {/* ToastProvider 包住页面内容：全站都能用右上角弹窗 */}
+          <ToastProvider>
+            <main style={{ paddingBottom: 72 }}>{children}</main>
+          </ToastProvider>
+          <MiniPlayer />
+        </PlayerProvider>
 
         {/* 页脚：网站的"信息门牌"（版权/联系/备案） */}
         <footer

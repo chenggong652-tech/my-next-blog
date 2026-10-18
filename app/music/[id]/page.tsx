@@ -38,15 +38,12 @@ export default async function SongPage({ params }: { params: Promise<{ id: strin
     );
   }
 
-  // 🎵 歌单队列：按 sortOrder 排好序的全部歌曲，找当前歌的前后邻居
+  // 🎵 歌单队列：按 sortOrder 排好序的全部歌曲（播放器整队切歌用）
   const allSongs = await prisma.song.findMany({
     orderBy: { sortOrder: "asc" },
-    select: { id: true },
   });
   const idx = allSongs.findIndex((s) => s.id === id);
   const total = allSongs.length;
-  const prevId = idx > 0 ? allSongs[idx - 1].id : null;
-  const nextId = idx >= 0 && idx < total - 1 ? allSongs[idx + 1].id : null;
 
   // ❤️ 当前用户收藏过这首吗？（没登录就是 false）
   const session = await auth();
@@ -56,20 +53,41 @@ export default async function SongPage({ params }: { params: Promise<{ id: strin
       }))
     : false;
 
+  // 🔍 音乐结构化数据（JSON-LD）：告诉搜索引擎"这是一首歌"
+  const siteUrl = "https://aizybase.com";
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "MusicRecording",
+    name: song.title,
+    genre: song.genre,
+    url: `${siteUrl}/music/${song.id}`,
+    image: song.cover ? `${siteUrl}${song.cover}` : undefined,
+    byArtist: {
+      "@type": "MusicGroup",
+      name: "JOY⭐️黑白键", // 创作者（海绵音乐账号）
+    },
+    inAlbum: {
+      "@type": "MusicAlbum",
+      name: "AizyBase 音乐馆",
+    },
+    isFamilyFriendly: true,
+  };
+
   return (
     <main style={{ maxWidth: "700px", margin: "40px auto", padding: "0 20px" }}>
+      {/* 给搜索引擎看的"歌曲身份证"（访客看不见，Ctrl+U 能看见） */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* 返回链接 */}
       <Link href="/music" style={{ color: "var(--link)", fontSize: "14px" }}>← 音乐馆</Link>
 
-      {/* 播放器：旋转封面 + 频谱 + 歌词滚动 + 连播 */}
+      {/* 播放器：旋转封面 + 频谱 + 歌词滚动 + 全局连播 */}
       <div style={{ marginTop: "16px" }}>
         <MusicPlayer
           song={song}
-          prevId={prevId}
-          nextId={nextId}
-          position={idx + 1}
-          total={total}
-          allIds={allSongs.map((s) => s.id)} // 整个歌单的 id 列表（随机/循环用）
+          allSongs={allSongs} // 完整歌单（全局播放器切歌/随机用）
           liked={liked} // 当前用户收藏状态
         />
       </div>

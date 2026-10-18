@@ -82,12 +82,15 @@ export default async function AdminPage() {
         });
 
     // 📊 音乐数据看板统计
-    const [songCount, songPlaySum, genreGroups, topSongs] = await Promise.all([
+    const [songCount, songPlaySum, genreGroups, topSongs, genrePlaySum] = await Promise.all([
       prisma.song.count(),
       prisma.song.aggregate({ _sum: { plays: true } }),
       prisma.song.groupBy({ by: ["genre"], _count: true }),
       prisma.song.findMany({ orderBy: { plays: "desc" }, take: 5, select: { title: true, plays: true, status: true } }),
+      prisma.song.groupBy({ by: ["genre"], _sum: { plays: true } }), // 每个风格的播放合计
     ]);
+    const maxGenrePlays = Math.max(...genrePlaySum.map((g) => g._sum.plays || 0), 1); // 风格最大播放数（算比例用）
+    const maxSongPlays = Math.max(...topSongs.map((s) => s.plays), 1); // 热歌最大播放数
     
 
   return (
@@ -259,26 +262,38 @@ export default async function AdminPage() {
             </div>
 
             <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", marginTop: "12px" }}>
-              {/* 最热 Top5 */}
+              {/* 最热 Top5（带热度条） */}
               <div style={{ border: "1px solid var(--card-border)", borderRadius: "12px", padding: "16px", background: "var(--card-bg)" }}>
-                <h3 style={{ margin: 0, fontSize: "15px" }}>🔥 最热 Top5</h3>
-                <div style={{ marginTop: "8px", display: "grid", gap: "6px" }}>
+                <h3 style={{ margin: 0, fontSize: "15px" }}>🔥 最热 Top5 热度条</h3>
+                <div style={{ marginTop: "8px", display: "grid", gap: "8px" }}>
                   {topSongs.map((s, i) => (
-                    <div key={s.title} style={{ display: "flex", justifyContent: "space-between", fontSize: "14px" }}>
-                      <span>{i + 1}. {s.title} {s.status === "hidden" ? "🔒" : ""}</span>
-                      <span style={{ color: "var(--text-light)" }}>▶ {s.plays} 次</span>
+                    <div key={s.title}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+                        <span>{i + 1}. {s.title} {s.status === "hidden" ? "🔒" : ""}</span>
+                        <span style={{ color: "var(--text-light)" }}>▶ {s.plays} 次</span>
+                      </div>
+                      {/* 进度条：宽度 = 这首歌播放 ÷ 最高播放 × 100% */}
+                      <div style={{ background: "var(--card-border)", borderRadius: "6px", height: "8px", marginTop: "4px", overflow: "hidden" }}>
+                        <div style={{ width: `${(s.plays / maxSongPlays) * 100}%`, height: "100%", borderRadius: "6px", background: "linear-gradient(90deg,#f59e0b,#dc2626)" }} />
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
-              {/* 风格分布 */}
+              {/* 风格播放分布（横向柱状图） */}
               <div style={{ border: "1px solid var(--card-border)", borderRadius: "12px", padding: "16px", background: "var(--card-bg)" }}>
-                <h3 style={{ margin: 0, fontSize: "15px" }}>🎚️ 风格分布</h3>
-                <div style={{ marginTop: "8px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                  {genreGroups.map((g) => (
-                    <span key={g.genre} style={{ padding: "4px 10px", borderRadius: "16px", background: "rgba(245,158,11,0.12)", color: "#f59e0b", fontSize: "13px" }}>
-                      {g.genre} · {g._count} 首
-                    </span>
+                <h3 style={{ margin: 0, fontSize: "15px" }}>🎚️ 风格播放分布</h3>
+                <div style={{ marginTop: "8px", display: "grid", gap: "8px" }}>
+                  {genrePlaySum.map((g) => (
+                    <div key={g.genre}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+                        <span>{g.genre}</span>
+                        <span style={{ color: "var(--text-light)" }}>▶ {g._sum.plays || 0} 次</span>
+                      </div>
+                      <div style={{ background: "var(--card-border)", borderRadius: "6px", height: "8px", marginTop: "4px", overflow: "hidden" }}>
+                        <div style={{ width: `${((g._sum.plays || 0) / maxGenrePlays) * 100}%`, height: "100%", borderRadius: "6px", background: "linear-gradient(90deg,#f59e0b,#dc2626)" }} />
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>

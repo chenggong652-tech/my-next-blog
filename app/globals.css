@@ -31,6 +31,11 @@
   --link: #60a5fa;
 }
 
+/* 黑夜模式下导航链接换浅蓝：深灰底上看得清 */
+[data-theme="dark"] .main-nav a {
+  color: #60a5fa;
+}
+
 body {
   background: var(--bg);
   color: var(--text);

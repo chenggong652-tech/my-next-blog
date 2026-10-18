@@ -1,84 +1,73 @@
 "use client";
 // app/music/[id]/MusicPlayer.tsx
-// 音乐 App 四件套：旋转唱片封面 + 频谱动效 + 歌词滚动 + 歌单连播
+// 播放页 UI：接入全局播放器（PlayerProvider）+ 旋转封面 + 真实频谱 + 歌词滚动 + 自定义控制条
 
 import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-
-type Song = {
-  id: string;
-  title: string;
-  genre: string;
-  cover: string | null;
-  audioUrl: string;
-  isOriginal: boolean;
-  lyrics: string | null;
-};
+import { usePlayer, type QueueSong } from "@/app/components/PlayerProvider";
 
 export default function MusicPlayer({
   song,
-  prevId,
-  nextId,
-  position,
-  total,
-  allIds,
+  allSongs,
   liked: likedInit,
 }: {
-  song: Song;
-  prevId: string | null;
-  nextId: string | null;
-  position: number;
-  total: number;
-  allIds: string[];
+  song: QueueSong;
+  allSongs: QueueSong[];
   liked: boolean;
 }) {
-  const router = useRouter();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const player = usePlayer();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const lyricsBoxRef = useRef<HTMLDivElement | null>(null);
+  const barRef = useRef<HTMLDivElement | null>(null); // 进度条容器
 
-  const [playing, setPlaying] = useState(false);
-  const [current, setCurrent] = useState(0);   // 当前播放秒数
-  const [duration, setDuration] = useState(0); // 歌曲总时长秒数
-  const [mode, setMode] = useState<"list" | "single" | "shuffle">("list"); // 播放模式
   const [liked, setLiked] = useState(likedInit); // ❤️ 收藏状态
   const [shareCopied, setShareCopied] = useState(false); // 📤 "已复制"提示
-  const reported = useRef(false); // 防重复计数：同一次打开页面只报 1 次
-  const analyserRef = useRef<AnalyserNode | null>(null); // 音频分析器（真频谱）
-  const freqDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null); // 频域数据缓冲区
-  const useFallback = useRef(false); // 浏览器不支持时退回装饰动画
+  const [offset, setOffset] = useState(0); // 🎚️ 歌词同步偏移（秒）
 
-  // 🔧 初始化真实频谱：把播放器的声音"分一根线"给分析器
+  // 打开页面时：把这首歌设为"当前播放"（不自动播），并读回上次的歌词偏移
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    player.initSong(song, allSongs);
     try {
-      type WAC = typeof window & { webkitAudioContext?: typeof AudioContext };
-      const Ctor = window.AudioContext ?? (window as WAC).webkitAudioContext;
-      if (!Ctor) throw new Error("浏览器不支持 AudioContext");
-      const ctx = new Ctor();
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 64; // 64 个采样点 → 32 个频段（正好一根柱子一个频段）
-      // 关键一步：把 audio 元素的输出"接"进分析器（接完还要接回音箱，否则没声音）
-      const source = ctx.createMediaElementSource(audio);
-      source.connect(analyser);
-      analyser.connect(ctx.destination);
-      analyserRef.current = analyser;
-      freqDataRef.current = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
-    } catch {
-      useFallback.current = true; // 老浏览器/异常 → 用装饰动画兜底
-    }
-  }, []);
+      const saved = Number(localStorage.getItem("lyricOffset") || "0");
+      if (!isNaN(saved) && saved >= -10 && saved <= 10) setOffset(saved);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [song.id]);
 
-  // 歌词按行切分（去掉空行）
+  // 偏移一改就记住
+  useEffect(() => {
+    try {
+      localStorage.setItem("lyricOffset", String(offset));
+    } catch {}
+  }, [offset]);
+
+  const { playing, current, duration, mode } = player;
+
+  // 歌词解析（LRC 时间戳 + 均分兜底）——同第 25 课逻辑
   const lines = song.lyrics ? song.lyrics.split("\n").filter((l) => l.trim()) : [];
-  const lineCount = Math.max(lines.length, 1);
+  const parsed = lines.map((l) => {
+    const m = /^\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]\s*(.*)$/.exec(l.trim());
+    if (m) {
+      const sec = Number(m[1]) * 60 + Number(m[2]) + Number(m[3] || "0") / 1000;
+      return { time: sec, text: m[4] || l.trim(), hasTime: true };
+    }
+    return { time: 0, text: l.trim(), hasTime: false };
+  });
+  const lineCount = Math.max(parsed.length, 1);
+  const hasTimestamps = parsed.filter((p) => p.hasTime).length > parsed.length / 2;
 
-  // 当前唱到第几行：把总时长平均分给每一行
-  const activeLine = duration
-    ? Math.min(Math.floor((current / duration) * lineCount), lineCount - 1)
-    : 0;
+  // 当前唱到第几行
+  const adjusted = Math.max(0, current + offset);
+  let activeLine = 0;
+  if (duration) {
+    if (hasTimestamps) {
+      for (let i = 0; i < parsed.length; i++) {
+        if (parsed[i].hasTime && adjusted >= parsed[i].time) activeLine = i;
+      }
+    } else {
+      activeLine = Math.min(Math.floor((adjusted / duration) * lineCount), lineCount - 1);
+    }
+  }
 
   // 歌词自动滚动：让当前行滚到可视区中间
   useEffect(() => {
@@ -88,7 +77,7 @@ export default function MusicPlayer({
     if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [activeLine, duration, lines.length]);
 
-  // 频谱动画：能拿到真实频率就用真数据，拿不到就随机装饰
+  // 频谱动画：全局分析器有数据就用真频谱，没有就装饰兜底
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -96,7 +85,7 @@ export default function MusicPlayer({
     if (!ctx) return;
 
     const BARS = 32;
-    const W = 1400;  // 画布真实像素（高清）
+    const W = 1400;
     const H = 180;
     canvas.width = W;
     canvas.height = H;
@@ -111,15 +100,15 @@ export default function MusicPlayer({
       for (let i = 0; i < BARS; i++) {
         let bh: number;
 
-        if (!useFallback.current && analyserRef.current && freqDataRef.current && playing) {
-          // 🎯 真实频谱：从歌曲实时频率里取这个频段的强度（0~255）
-          analyserRef.current.getByteFrequencyData(freqDataRef.current);
-          const raw = freqDataRef.current[i] / 255; // 归一化成 0~1
+        if (player.analyser && player.freqData && playing) {
+          // 🎯 真实频谱：从全局分析器读数
+          player.analyser.getByteFrequencyData(player.freqData);
+          const raw = player.freqData[i] / 255;
           const target = 6 + raw * (H - 14);
-          heights[i] += (target - heights[i]) * 0.5; // 平滑过渡，不闪瞎眼
+          heights[i] += (target - heights[i]) * 0.5;
           bh = heights[i];
         } else {
-          // 🎨 装饰兜底：播放时随机蹦跶，暂停回落（老浏览器专用）
+          // 🎨 装饰兜底
           if (playing) {
             const target = 10 + Math.random() * (H - 16);
             heights[i] += (target - heights[i]) * 0.35;
@@ -130,12 +119,11 @@ export default function MusicPlayer({
         }
 
         const x = i * (bw + gap);
-
-        // 🌈 按频率上色：低音柱子暖色（红橙），高音柱子冷色（紫蓝），中间彩虹过渡
-        const hue = 15 + (i / BARS) * 265; // 色相：15°红橙 → 280°紫
+        // 🌈 按频率上色：低音暖色 → 高音冷色
+        const hue = 15 + (i / BARS) * 265;
         const grad = ctx.createLinearGradient(0, H - bh, 0, H);
-        grad.addColorStop(0, `hsl(${hue}, 90%, 70%)`); // 顶部亮色
-        grad.addColorStop(1, `hsl(${hue}, 85%, 40%)`); // 底部深色
+        grad.addColorStop(0, `hsl(${hue}, 90%, 70%)`);
+        grad.addColorStop(1, `hsl(${hue}, 85%, 40%)`);
         ctx.fillStyle = grad;
         ctx.beginPath();
         if (typeof ctx.roundRect === "function") {
@@ -149,18 +137,14 @@ export default function MusicPlayer({
     };
     draw();
     return () => cancelAnimationFrame(raf);
-  }, [playing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, player.analyser, player.freqData]);
 
   // 时间显示：秒 → 分:秒
   const fmt = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
     return `${m}:${sec.toString().padStart(2, "0")}`;
-  };
-
-  // 切歌：跳转到上一首/下一首
-  const goTo = (targetId: string | null) => {
-    if (targetId) router.push(`/music/${targetId}`);
   };
 
   // ❤️ 收藏/取消收藏（没登录 → 跳登录页）
@@ -178,7 +162,7 @@ export default function MusicPlayer({
     if (data.ok) setLiked(data.liked);
   };
 
-  // 📤 分享：复制"歌名 + 链接"到剪贴板，方便发朋友/群
+  // 📤 分享：复制"歌名 + 链接"到剪贴板
   const share = async () => {
     const url = window.location.href;
     const text = `🎵 ${song.title}（${song.genre}）| AizyBase 音乐馆\n${url}`;
@@ -189,29 +173,20 @@ export default function MusicPlayer({
     } catch {}
   };
 
-  // 一首放完该干嘛？按模式分流
-  const handleEnded = () => {
-    if (mode === "single") {
-      // 🔂 单曲循环：重头再播这一首
-      const a = audioRef.current;
-      if (a) {
-        a.currentTime = 0;
-        a.play();
-      }
-      return;
-    }
-    if (mode === "shuffle" && allIds.length > 1) {
-      // 🔀 随机：从歌单里随机挑一首（不挑自己）
-      const others = allIds.filter((x) => x !== song.id);
-      goTo(others[Math.floor(Math.random() * others.length)]);
-      return;
-    }
-    // 🔁 列表循环：有下一首就下一首，最后一首回到第一首
-    goTo(nextId ?? allIds[0] ?? null);
+  // ⏯ 播放/暂停按钮
+  const playPause = () => player.toggle();
+
+  // 进度条：点击跳转
+  const seekByClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const bar = barRef.current;
+    if (!bar || !duration) return;
+    const rect = bar.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    player.seek(Math.max(0, Math.min(1, ratio)) * duration);
   };
 
-  // 播放模式按钮的通用长相
-  const modeBtn = (m: "list" | "single" | "shuffle", label: string, title: string): React.CSSProperties => ({
+  // 播放模式按钮
+  const modeBtn = (m: "list" | "single" | "shuffle", label: string): React.CSSProperties => ({
     padding: "6px 10px",
     borderRadius: "8px",
     border: "none",
@@ -221,6 +196,16 @@ export default function MusicPlayer({
     color: mode === m ? "#fff" : "var(--text-light)",
     fontWeight: mode === m ? 700 : 400,
   });
+
+  const syncBtn: React.CSSProperties = {
+    padding: "4px 8px",
+    borderRadius: "6px",
+    border: "1px solid var(--card-border)",
+    background: "var(--card-bg)",
+    color: "var(--text)",
+    cursor: "pointer",
+    fontSize: "12px",
+  };
 
   return (
     <div>
@@ -236,7 +221,6 @@ export default function MusicPlayer({
         <div style={{ flex: 1, minWidth: 200 }}>
           <h1 style={{ fontSize: "28px", margin: "8px 0 4px", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
             {song.title}
-            {/* ❤️ 收藏按钮：红心=已收藏，白心=没收藏 */}
             <button
               onClick={toggleLike}
               title={liked ? "取消收藏" : "收藏这首歌"}
@@ -244,7 +228,6 @@ export default function MusicPlayer({
             >
               {liked ? "❤️" : "🤍"}
             </button>
-            {/* 📤 分享按钮：复制链接给朋友 */}
             <button
               onClick={share}
               title="分享这首歌"
@@ -275,107 +258,113 @@ export default function MusicPlayer({
         style={{ width: "100%", height: "90px", marginTop: "20px", display: "block" }}
       />
 
-      {/* 🔊 播放控制（原生控件，稳定兼容手机） */}
-      <audio
-        ref={audioRef}
-        controls
-        src={song.audioUrl}
-        preload="metadata"
-        style={{ width: "100%", marginTop: "12px" }}
-        onPlay={() => {
-          setPlaying(true);
-          // 📊 播放计数：第一次播放时通知接口 +1（同页面不重复）
-          if (!reported.current) {
-            reported.current = true;
-            fetch("/api/song/play", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id: song.id }),
-            }).catch(() => {});
-          }
-          // 🕘 记下"最近播放"：存在浏览器本地，下次打开音乐馆首页能看见（最多 6 首，去重）
-          try {
-            const prev: { id: string; title: string; cover: string | null }[] = JSON.parse(
-              localStorage.getItem("recentSongs") || "[]"
-            );
-            const next = [
-              { id: song.id, title: song.title, cover: song.cover },
-              ...prev.filter((x) => x.id !== song.id),
-            ].slice(0, 6);
-            localStorage.setItem("recentSongs", JSON.stringify(next));
-          } catch {}
-        }}
-        onPause={() => setPlaying(false)}
-        onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
-        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-        onEnded={handleEnded} // 一首放完 → 按播放模式分流
-      />
-
-      {/* ⏮ 歌单连播控制条 */}
+      {/* 🎛️ 自定义控制条：上一首 / 播放暂停 / 下一首 + 进度条 + 模式 */}
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          rowGap: "8px",
-          marginTop: "12px",
-          padding: "10px 14px",
+          marginTop: "14px",
+          padding: "14px",
           background: "var(--card-bg)",
           borderRadius: "12px",
           border: "1px solid var(--card-border)",
+          display: "grid",
+          gap: "10px",
         }}
       >
-        <button
-          onClick={() => goTo(prevId)}
-          disabled={!prevId}
-          style={{
-            padding: "8px 18px",
-            borderRadius: "8px",
-            border: "none",
-            cursor: prevId ? "pointer" : "not-allowed",
-            opacity: prevId ? 1 : 0.4,
-            background: "linear-gradient(135deg,#f59e0b,#dc2626)",
-            color: "#fff",
-            fontWeight: 600,
-            fontSize: "14px",
-          }}
+        {/* 进度条（点击跳转）+ 时间 */}
+        <div
+          ref={barRef}
+          onClick={seekByClick}
+          style={{ height: "8px", borderRadius: "6px", background: "var(--card-border)", cursor: "pointer", position: "relative", overflow: "hidden" }}
         >
-          ⏮ 上一首
-        </button>
-        <span style={{ color: "var(--text-light)", fontSize: "13px", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-          <span>🎶 第 {position} / {total} 首</span>
-          {/* 🔁 播放模式切换：列表循环 / 单曲循环 / 随机 */}
-          <span style={{ display: "flex", gap: "4px" }}>
-            <button onClick={() => setMode("list")} style={modeBtn("list", "🔁", "列表循环")} title="列表循环">🔁</button>
-            <button onClick={() => setMode("single")} style={modeBtn("single", "🔂", "单曲循环")} title="单曲循环">🔂</button>
-            <button onClick={() => setMode("shuffle")} style={modeBtn("shuffle", "🔀", "随机播放")} title="随机播放">🔀</button>
-          </span>
-        </span>
-        <button
-          onClick={() => goTo(nextId)}
-          disabled={!nextId}
-          style={{
-            padding: "8px 18px",
-            borderRadius: "8px",
-            border: "none",
-            cursor: nextId ? "pointer" : "not-allowed",
-            opacity: nextId ? 1 : 0.4,
-            background: "linear-gradient(135deg,#f59e0b,#dc2626)",
-            color: "#fff",
-            fontWeight: 600,
-            fontSize: "14px",
-          }}
-        >
-          下一首 ⏭
-        </button>
+          <div
+            style={{
+              width: `${duration ? (current / duration) * 100 : 0}%`,
+              height: "100%",
+              borderRadius: "6px",
+              background: "linear-gradient(90deg,#f59e0b,#dc2626)",
+            }}
+          />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--text-light)" }}>
+          <span>{fmt(current)}</span>
+          <span>{fmt(duration)}</span>
+        </div>
+
+        {/* 按钮行 */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", rowGap: "8px" }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button
+              onClick={() => player.prev()}
+              disabled={!player.queue.length}
+              style={{
+                padding: "8px 16px",
+                borderRadius: "8px",
+                border: "none",
+                cursor: player.queue.length ? "pointer" : "not-allowed",
+                opacity: player.queue.length ? 1 : 0.4,
+                background: "linear-gradient(135deg,#f59e0b,#dc2626)",
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: "14px",
+              }}
+            >
+              ⏮ 上一首
+            </button>
+            {/* ⏯ 播放/暂停 大按钮 */}
+            <button
+              onClick={playPause}
+              title={playing ? "暂停" : "播放"}
+              style={{
+                width: "52px",
+                height: "52px",
+                borderRadius: "50%",
+                border: "none",
+                cursor: "pointer",
+                background: "linear-gradient(135deg,#f59e0b,#dc2626)",
+                color: "#fff",
+                fontSize: "22px",
+                boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
+              }}
+            >
+              {playing ? "⏸" : "▶"}
+            </button>
+            <button
+              onClick={() => player.next()}
+              disabled={!player.queue.length}
+              style={{
+                padding: "8px 16px",
+                borderRadius: "8px",
+                border: "none",
+                cursor: player.queue.length ? "pointer" : "not-allowed",
+                opacity: player.queue.length ? 1 : 0.4,
+                background: "linear-gradient(135deg,#f59e0b,#dc2626)",
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: "14px",
+              }}
+            >
+              下一首 ⏭
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+            <button onClick={() => player.setMode("list")} style={modeBtn("list", "🔁")} title="列表循环">🔁</button>
+            <button onClick={() => player.setMode("single")} style={modeBtn("single", "🔂")} title="单曲循环">🔂</button>
+            <button onClick={() => player.setMode("shuffle")} style={modeBtn("shuffle", "🔀")} title="随机播放">🔀</button>
+          </div>
+        </div>
       </div>
 
       {/* 📜 歌词滚动面板 */}
       {lines.length > 0 ? (
         <div style={{ marginTop: "28px", borderTop: "1px solid var(--card-border)", paddingTop: "16px" }}>
-          <h2 style={{ fontSize: "18px" }}>
+          <h2 style={{ fontSize: "18px", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
             📜 歌词 <span style={{ color: "var(--text-light)", fontSize: "12px", fontWeight: "normal" }}>{fmt(current)} / {fmt(duration)}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: "4px", marginLeft: "auto", fontSize: "12px" }}>
+              <button onClick={() => setOffset((o) => Math.max(-10, o - 0.5))} title="歌词提前 0.5 秒" style={syncBtn}>⏪ -0.5</button>
+              <span style={{ color: "var(--text-light)", minWidth: "42px", textAlign: "center" }}>{offset > 0 ? `+${offset.toFixed(1)}s` : `${offset.toFixed(1)}s`}</span>
+              <button onClick={() => setOffset((o) => Math.min(10, o + 0.5))} title="歌词延后 0.5 秒" style={syncBtn}>+0.5 ⏩</button>
+              <button onClick={() => setOffset(0)} title="复位" style={syncBtn}>🔄</button>
+            </span>
           </h2>
           <div
             ref={lyricsBoxRef}
@@ -389,9 +378,13 @@ export default function MusicPlayer({
               borderRadius: "12px",
             }}
           >
-            {lines.map((line, i) => (
+            {parsed.map((p, i) => (
               <div
                 key={i}
+                onClick={() => {
+                  player.seek(hasTimestamps && p.hasTime ? p.time : (i / lineCount) * duration);
+                  if (player.playing === false) player.toggle();
+                }}
                 style={{
                   color: i === activeLine ? "#f59e0b" : "var(--text)",
                   fontWeight: i === activeLine ? 700 : 400,
@@ -399,9 +392,11 @@ export default function MusicPlayer({
                   transformOrigin: "left center",
                   transition: "color .2s, transform .2s",
                   padding: "2px 4px",
+                  cursor: "pointer",
+                  borderRadius: "6px",
                 }}
               >
-                {line}
+                {p.text}
               </div>
             ))}
           </div>
@@ -412,7 +407,7 @@ export default function MusicPlayer({
         </p>
       )}
 
-      {/* 唱片旋转动画 */}
+      {/* 唱片旋转动画 + 手机端适配 */}
       <style jsx>{`
         .disc {
           border-radius: 12px;

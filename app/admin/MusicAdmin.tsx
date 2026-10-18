@@ -133,7 +133,7 @@ export default function MusicAdmin({ songs }: { songs: Song[] }) {
               <textarea
                 name="lyrics"
                 defaultValue={editing.lyrics || ""}
-                placeholder="歌词（每行一句，空白=清空）"
+                placeholder={"歌词：每行一句。支持 LRC 精确时间戳（如 [00:12.50]又一年四季的更替）；不带时间戳则自动均分对齐"}
                 rows={5}
                 style={inputStyle}
               />

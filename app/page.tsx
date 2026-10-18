@@ -18,11 +18,11 @@ const statCard: React.CSSProperties = {
 // 第一次访问 → 查库并存起来；60秒内再来 → 直接复用，不跨洋查库 → 秒开
 const getHomeData = unstable_cache(
   async () => {
-    // 取最新3篇博客
+    // 取最新6篇博客
     const latestBlogs = await prisma.blog.findMany({
       where: { status: "published" },
       orderBy: { createdAt: "desc" },
-      take: 3,
+      take: 6,
       include: { user: true },
     });
 
@@ -33,11 +33,19 @@ const getHomeData = unstable_cache(
       take: 3,                      // 只取前3名
       include: { user: true },      // 顺便查出作者
     });
+        // 取带系列的文章（第 26 课成果：按系列分组展示）
+        const seriesBlogs = await prisma.blog.findMany({
+          where: { status: "published", series: { not: null } },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, title: true, series: true },
+          take: 50,
+        });
+    
 
-    // 取最新3条留言
+    // 取最新6条留言
     const latestMessages = await prisma.message.findMany({
       orderBy: { createdAt: "desc" },
-      take: 3,
+      take: 6,
       include: { user: true },
     });
 
@@ -51,6 +59,7 @@ const getHomeData = unstable_cache(
 
     // 把6组数据打包返回
     return {
+      seriesBlogs,
       latestBlogs,
       hotBlogs,
       latestMessages,
@@ -66,22 +75,65 @@ const getHomeData = unstable_cache(
 
 export default async function HomePage() {
   // 从缓存拿数据（第一次查库，60秒内直接复用 → 秒开）
-  const { latestBlogs, hotBlogs, latestMessages, blogCount, messageCount, userCount, totalViews } = await getHomeData();
+  const { seriesBlogs, latestBlogs, hotBlogs, latestMessages, blogCount, messageCount, userCount, totalViews } = await getHomeData();
 
   return (
     <main style={{ maxWidth: "900px", margin: "40px auto", padding: "0 20px" }}>
       <div style={{ textAlign: "center", marginBottom: "50px" }}>
-      <h1 className="home-title" style={{ fontSize: "36px" }}>我的简易博客网站</h1>
-        <p style={{ color: "var(--text-light)", marginTop: 10 }}>分享文字，互相留言交流</p>
-        <div className="home-btns" style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: 24 }}>
+        <h1 className="home-title" style={{ fontSize: "44px", margin: 0 }}>
+          AizyBase{" "}
+          <span
+            style={{
+              background: "linear-gradient(135deg,#6366f1,#a855f7)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            AI 资源库
+          </span>
+        </h1>
+        <p style={{ color: "var(--text-light)", marginTop: 12, fontSize: 17 }}>
+          教程 · 工具 · 灵感，一站式收藏，跟着系列慢慢学
+        </p>
+        <div
+          className="home-btns"
+          style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: 28 }}
+        >
           <Link href="/blog">
-            <button style={{ padding: "10px 20px", fontSize: 16, borderRadius:"8px" }}>进入博客列表</button>
+            <button
+              style={{
+                padding: "12px 28px",
+                fontSize: 16,
+                borderRadius: "999px",
+                border: "none",
+                background: "linear-gradient(135deg,#6366f1,#a855f7)",
+                color: "#fff",
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+            >
+              📚 浏览资源
+            </button>
           </Link>
           <Link href="/message">
-            <button style={{ padding: "10px 20px", fontSize: 16, borderRadius:"8px" }}>前往留言板</button>
+            <button
+              style={{
+                padding: "12px 28px",
+                fontSize: 16,
+                borderRadius: "999px",
+                border: "1px solid var(--card-border)",
+                background: "var(--card-bg)",
+                color: "var(--text)",
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+            >
+              💬 留言交流
+            </button>
           </Link>
         </div>
       </div>
+
             {/* 最近看过：从浏览器小仓库读记录 */}
             <ViewHistory />
 
@@ -91,6 +143,7 @@ export default async function HomePage() {
         style={{
           display: "grid",
           gap: "12px",
+          gridTemplateColumns: "repeat(4, 1fr)",
           marginBottom: "40px",
         }}
       >
@@ -113,16 +166,26 @@ export default async function HomePage() {
       </div>
 
       <div className="home-sections" style={{ display: "grid", gap: "40px" }}>
-        {/* 📝最新博客区域，下面循环出来的每一个div就是【博客卡片】 */}
-        <div>
-          <h2 style={{ borderBottom: "1px solid #ccc", paddingBottom: 8 }}>📝 最新博客</h2>
+                {/* 📚 系列专栏：第 26 课成果，把文章串成追更清单 */}
+                <div>
+          <h2 style={{ borderBottom: "1px solid #ccc", paddingBottom: 8 }}>📚 系列专栏</h2>
           <div style={{ marginTop: 16 }}>
-            {latestBlogs.length === 0 ? (
-              <p style={{ color: "var(--text-light)" }}>暂无博客文章</p>
-            ) : (
-              latestBlogs.map((blog) => (
+            {(() => {
+              // 把带系列的文章按系列名分组（最新在前）
+              const groups = new Map<
+                string,
+                { latestTitle: string; latestId: string; count: number }
+              >();
+              for (const b of seriesBlogs) {
+                const name = b.series || "";
+                if (!groups.has(name)) {
+                  groups.set(name, { latestTitle: b.title, latestId: b.id, count: 0 });
+                }
+                groups.get(name)!.count++;
+              }
+              return [...groups.entries()].map(([name, g]) => (
                 <div
-                  key={blog.id}
+                  key={name}
                   style={{
                     border: "1px solid var(--card-border)",
                     padding: 12,
@@ -132,11 +195,60 @@ export default async function HomePage() {
                     boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
                   }}
                 >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Link
+                      href={`/series/${encodeURIComponent(name)}`}
+                      style={{ color: "var(--link)", fontWeight: "bold", textDecoration: "none" }}
+                    >
+                      📚 {name}
+                    </Link>
+                    <span style={{ fontSize: 13, color: "var(--text-light)" }}>{g.count} 篇</span>
+                  </div>
+                  <p style={{ fontSize: 13, color: "var(--text-light)", marginTop: 6 }}>
+                    最新：《
+                    <Link href={`/blog/${g.latestId}`} style={{ color: "#2563eb" }}>
+                      {g.latestTitle}
+                    </Link>
+                    》
+                  </p>
+                </div>
+              ));
+            })()}
+            {seriesBlogs.length === 0 && (
+              <p style={{ color: "var(--text-light)" }}>还没有系列，写文章时填个系列名试试</p>
+            )}
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <Link href="/blog" style={{ color: "#2563eb" }}>去逛文章 →</Link>
+          </div>
+        </div>
+
+        {/* 📝最新博客区域，下面循环出来的每一个div就是【博客卡片】 */}
+        <div>
+          <h2 style={{ borderBottom: "1px solid #ccc", paddingBottom: 8 }}>📝 最新博客</h2>
+          <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: "12px" }}>
+            {latestBlogs.length === 0 ? (
+              <p style={{ color: "var(--text-light)" }}>暂无博客文章</p>
+            ) : (
+              latestBlogs.map((blog) => (
+                <div
+                  key={blog.id}
+                  style={{
+                    border: "1px solid var(--card-border)",
+                    padding: 14,
+                    borderRadius: 10,
+                    background: "var(--card-bg)",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                    width: "calc(33.333% - 12px)",
+                    minWidth: "220px",
+                    boxSizing: "border-box",
+                  }}
+                >
                   <Link href={`/blog/${blog.id}`}>
-                    <h3 style={{ margin: 0, color: "var(--link)" }}>{blog.title}</h3>
+                    <h3 style={{ margin: 0, color: "var(--link)", fontSize: 16 }}>{blog.title}</h3>
                   </Link>
-                  <p style={{ fontSize: 13, color: "var(--text-light)", marginTop:6 }}>
-                    <Link href={`/profile/${blog.userId}`} style={{color:"#2563eb"}}>
+                  <p style={{ fontSize: 13, color: "var(--text-light)", marginTop: 6 }}>
+                    <Link href={`/profile/${blog.userId}`} style={{ color: "#2563eb" }}>
                       {blog.user?.name || "匿名"}
                     </Link>
                     &nbsp;<RelativeTime time={blog.createdAt} />
@@ -153,7 +265,7 @@ export default async function HomePage() {
         {/* 💬最新留言区域，循环出来的div就是【留言卡片】 */}
         <div>
           <h2 style={{ borderBottom: "1px solid #ccc", paddingBottom: 8 }}>💬 最新留言</h2>
-          <div style={{ marginTop: 16 }}>
+          <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: "12px" }}>
             {latestMessages.length === 0 ? (
               <p style={{ color: "var(--text-light)" }}>暂无留言</p>
             ) : (
@@ -162,21 +274,22 @@ export default async function HomePage() {
                   key={msg.id}
                   style={{
                     border: "1px solid var(--card-border)",
-                    padding: 12,
-                    marginBottom: 12,
+                    padding: 14,
                     borderRadius: 10,
                     background: "var(--card-bg)",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                    width: "calc(33.333% - 12px)",
+                    minWidth: "220px",
+                    boxSizing: "border-box",
                   }}
                 >
-                  <p style={{fontSize:13, margin:0}}>
-                    <Link href={`/profile/${msg.userId}`} style={{color:"#2563eb"}}>
-                      {msg.user?.name || "匿名"}
+                  <p style={{ fontSize: 13, margin: 0 }}>
+                    <Link href={`/profile/${msg.userId}`} style={{ color: "#2563eb" }}>
+                      {msg.name || msg.user?.name || "匿名"}
                     </Link>
                     &nbsp;<RelativeTime time={msg.createdAt} />
-
                   </p>
-                  <p style={{marginTop:6}}>{msg.content}</p>
+                  <p style={{ marginTop: 6, fontSize: 14 }}>{msg.content}</p>
                 </div>
               ))
             )}

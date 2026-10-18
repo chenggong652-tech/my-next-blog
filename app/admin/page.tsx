@@ -81,6 +81,12 @@ export default async function AdminPage() {
           orderBy: { createdAt: "desc" },
         });
 
+                // 7. 最近操作日志（最新的在前，取20条）
+                const recentLogs = await prisma.operationLog.findMany({
+                  orderBy: { createdAt: "desc" },
+                  take: 20,
+                });        
+
     // 📊 音乐数据看板统计
     const [songCount, songPlaySum, genreGroups, topSongs, genrePlaySum] = await Promise.all([
       prisma.song.count(),
@@ -330,6 +336,36 @@ export default async function AdminPage() {
 
 {/* 歌曲列表：每首可 ✏️ 编辑 / 🗑️ 删除 */}
 <MusicAdmin songs={allSongs} />
+
+        {/* 🕵️ 操作日志：谁删了文章/评论都能查 */}
+        <h2 style={{ fontSize: "22px", marginTop: "40px" }}>🕵️ 操作日志（最近 {recentLogs.length} 条）</h2>
+        <div style={{ marginTop: "12px" }}>
+          {recentLogs.map((log) => (
+            <div
+              key={log.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "12px",
+                border: "1px solid var(--card-border)",
+                padding: "10px 16px",
+                marginTop: "8px",
+                borderRadius: "10px",
+                background: "var(--card-bg)",
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p style={{ margin: 0, fontWeight: 600 }}>【{log.action}】{log.target}</p>
+                <p style={{ margin: "4px 0 0", color: "var(--text-light)", fontSize: "13px" }}>
+                  👤 {log.userName} · {log.createdAt.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          ))}
+          {recentLogs.length === 0 && (
+            <p style={{ color: "var(--text-light)", fontSize: "14px" }}>还没有操作记录（删一篇文章试试）</p>
+          )}
+        </div>
 
     </main>
   );

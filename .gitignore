@@ -51,3 +51,14 @@ dev-server.log
 /.creative-design/
 
 # （第 20 课）public/music 的音频/封面已加入版本控制——音乐馆上线需要它们
+
+# 诊断/临时输出文件（本地检查用，不推送）
+tscheck*.txt
+*_out.txt
+dev.log
+gitstatus.txt
+gitlog.txt
+t1*.txt
+
+# 本地数据库备份（含数据快照，绝不推送到 GitHub）
+/backups/

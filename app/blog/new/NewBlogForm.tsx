@@ -73,7 +73,17 @@ useEffect(() => {
           <option>生活随笔</option>
           <option>技术教程</option>
         </select>
-      </div>
+      </div>.
+      
+      <div>
+          <label style={{ fontWeight: "bold" }}>所属系列（可选，如"AI入门教程"）</label>
+          <input
+            name="series"
+            placeholder="填了就能把文章归进一个系列，读者可以追更"
+            style={{ width: "100%", padding: "10px", marginTop: "6px", borderRadius: "8px", border: "1px solid #d1d5db", fontSize: "16px" }}
+          />
+        </div>
+
       <div>
       <label style={{ fontWeight: "bold" }}>文章内容（支持 Markdown：`#`标题、`**`加粗、`-`列表）</label>
         <textarea

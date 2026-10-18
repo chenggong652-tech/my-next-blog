@@ -15,6 +15,7 @@ export default function EditBlogForm({
   blogCategory,
   blogPinned,
   blogCover,
+  blogSeries,
 }: {
   blogId: string;
   blogTitle: string;
@@ -22,6 +23,7 @@ export default function EditBlogForm({
   blogCategory: string;
   blogPinned: boolean;
   blogCover: string;
+  blogSeries: string;
 }) {
   // 和新建表单一样，用 useActionState 接收校验错误提示（先声明 state）
   const [state, formAction] = useActionState(updateBlog, {});
@@ -78,6 +80,17 @@ export default function EditBlogForm({
           <option>生活随笔</option>
           <option>技术教程</option>
         </select>
+        
+        <div>
+          <label style={{ fontWeight: "bold" }}>所属系列（可选）</label>
+          <input
+            name="series"
+            defaultValue={blogSeries}
+            placeholder="填了就能把文章归进一个系列，读者可以追更"
+            style={{ width: "100%", padding: "10px", marginTop: "6px", borderRadius: "8px", border: "1px solid #d1d5db", fontSize: "16px" }}
+          />
+        </div>
+
         <div>
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: "bold" }}>
           <input type="checkbox" name="pinned" defaultChecked={blogPinned} />

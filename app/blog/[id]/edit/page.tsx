@@ -58,6 +58,7 @@ export default async function EditBlogPage({ params }: Props) {
   blogCategory={blog.category}
   blogPinned={blog.pinned}
   blogCover={blog.coverImage ?? ""}
+  blogSeries={blog.series ?? ""}
 />
       </div>
     </main>

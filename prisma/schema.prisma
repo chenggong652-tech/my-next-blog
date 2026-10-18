@@ -40,6 +40,7 @@ model Blog {
   pinned    Boolean  @default(false) // 是否置顶：true=置顶
   coverImage String? // 封面图片地址（可空：不填就不显示封面）
   status    String   @default("published") // 文章状态：published=已发布，draft=草稿
+  series    String? // 所属系列/专栏名（可空：不属于任何系列）
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   userId    String
@@ -232,5 +233,15 @@ model SongLike {
 
   @@unique([songId, userId]) // 同一人同一首歌只能收藏一次（防重复点❤️）
 }
+
+// 第 22 课：后台操作日志（谁删了文章/评论都能查）
+model OperationLog {
+  id        String   @id @default(cuid())
+  action    String   // 操作名：删除文章 / 删除评论 / 删除留言...
+  target    String   // 被操作的对象：文章标题 / 评论内容（截断）
+  userName  String   // 谁操作的（直接存名字，展示不用查库）
+  createdAt DateTime @default(now())
+}
+
 
 

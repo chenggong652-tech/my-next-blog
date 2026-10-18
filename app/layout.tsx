@@ -6,7 +6,9 @@ import "./globals.css";
 import { ToastProvider } from "@/app/components/Toast";
 import ThemeToggle from "@/app/components/ThemeToggle";
 import { PlayerProvider } from "@/app/components/PlayerProvider";
-import MiniPlayer from "@/app/components/MiniPlayer";
+// 🧠 第 19 课：迷你条动态导入（首屏不加载它的代码，浏览器空闲时再拉 → 首屏更轻）
+// ssr:false 不能直接写在服务端组件里，已包到客户端组件 MiniPlayerLazy
+import MiniPlayer from "@/app/components/MiniPlayerLazy";
 import { isAdmin } from "@/lib/admin";
 import VisitTracker from "@/app/components/VisitTracker";
 import InstallButton from "@/app/components/InstallButton";

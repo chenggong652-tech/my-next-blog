@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
+import { logAction } from "@/lib/log";
 import { redirect } from "next/navigation";
 
 // 表单校验结果类型：成功返回空对象，失败返回错误信息
@@ -25,6 +26,7 @@ export async function createBlog(
   const coverImage = (formData.get("coverImage") as string) || "";
   const tags = formData.getAll("tags") as string[]; // 勾选的多个标签名
   const status = (formData.get("status") as string) || "published";
+  const series = (formData.get("series") as string) || "";
 
 
 
@@ -41,6 +43,7 @@ export async function createBlog(
       category: category,
       coverImage: coverImage.trim(),
       status: status,
+      series: series.trim() || null,
       userId: session.user.id, // 记录作者是谁
       // 挂标签：勾选的标签名，数据库没有就自动创建（connectOrCreate）
       tags: {
@@ -70,6 +73,7 @@ export async function updateBlog(
   const pinned = formData.get("pinned") === "on";
   const coverImage = (formData.get("coverImage") as string) || "";
   const status = (formData.get("status") as string) || "published";
+  const series = (formData.get("series") as string) || "";
 
   if (!title.trim()) return { error: "标题不能为空" };
   if (!content.trim()) return { error: "内容不能为空" };
@@ -85,7 +89,8 @@ export async function updateBlog(
 
   await prisma.blog.update({
     where: { id },
-        data: { title: title.trim(), content: content.trim(), category: category, pinned, coverImage: coverImage.trim(), status: status },
+        data: { title: title.trim(), content: content.trim(), category: category, pinned, coverImage: coverImage.trim(), status: status , series: series.trim() || null,
+        },
   });
   revalidatePath("/blog");
   revalidatePath(`/blog/${id}`);
@@ -110,6 +115,10 @@ export async function deleteBlog(formData: FormData) {
   await prisma.blog.delete({
     where: { id },
   });
+  // 记日志：谁删了哪篇文章
+  if (session?.user?.name) {
+    await logAction("删除文章", blogItem.title, session.user.name);
+  }
   revalidatePath("/blog");
   return { success: true, msg: "删除成功" };
 }

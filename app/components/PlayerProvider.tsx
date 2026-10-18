@@ -35,6 +35,8 @@ type PlayerCtx = {
   prev: () => void; // 上一首
   seek: (t: number) => void; // 跳转到某秒
   setMode: (m: "list" | "single" | "shuffle") => void; // 播放模式
+  volume: number; // 音量（0~1）
+  setVolume: (v: number) => void; // 调音量
 };
 
 const Ctx = createContext<PlayerCtx | null>(null);
@@ -53,6 +55,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [mode, setModeState] = useState<"list" | "single" | "shuffle">("list");
+  const [volume, setVolumeState] = useState(1); // 音量（0~1），默认满格
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [freqData, setFreqData] = useState<Uint8Array<ArrayBuffer> | null>(null);
   const reported = useRef(false); // 防重复计数
@@ -86,6 +89,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // 🔊 音量：打开页面时恢复上次的设置，之后每次调整都同步给 audio
+  useEffect(() => {
+    try {
+      const v = Number(localStorage.getItem("playerVolume") || "1");
+      setVolumeState(isNaN(v) ? 1 : Math.max(0, Math.min(1, v)));
+    } catch {}
+  }, []);
+  useEffect(() => {
+    const a = audioRef.current;
+    if (a) a.volume = volume;
+  }, [volume]);
+
   // 唤醒音频上下文（浏览器自动播放策略会挂起它，播放前必须 resume）
   const resumeCtx = () => {
     const c = ctxRef.current;
@@ -103,7 +118,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       resumeCtx();
       a.src = queueRef.current[i].audioUrl;
       a.currentTime = 0;
-      a.play();
+      a.play().catch(() => {});
     }
   };
 
@@ -176,7 +191,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         resumeCtx();
         a.src = s.audioUrl;
         a.currentTime = 0;
-        a.play();
+        a.play().catch(() => {});
       }
     },
     toggle: () => {
@@ -184,7 +199,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       if (!a) return;
       if (a.paused) {
         resumeCtx();
-        a.play();
+        a.play().catch(() => {});
         if (!reported.current && songRef.current) {
           reported.current = true;
           reportPlay(songRef.current);
@@ -200,6 +215,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       if (a) a.currentTime = t;
     },
     setMode: (m) => setModeState(m),
+    volume,
+    setVolume: (v) => {
+      const n = Math.max(0, Math.min(1, v));
+      setVolumeState(n);
+      const a = audioRef.current;
+      if (a) a.volume = n;
+      try { localStorage.setItem("playerVolume", String(n)); } catch {}
+    },
   };
 
   return (

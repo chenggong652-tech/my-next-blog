@@ -2,15 +2,22 @@
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { checkBadWord } from "@/lib/word-filter";
+import { rateLimit } from "@/lib/rate-limit";
+import { sendNotifyMail } from "@/lib/mail";    
 
-// 添加留言（必须登录，记录留言者是谁）
+// 添加留言（必须登录，记录留言者是谁） 
 export async function addMessage(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return; // 未登录，直接退出（页面已控制表单，这是双保险）
+    // 限流：1分钟最多10次（防机器人狂刷留言）
+    const limit = await rateLimit("message");
+    if (!limit.ok) return;  
 
   const name = formData.get('name') as string;
   const content = formData.get('content') as string;
   if (!name || !content) return;
+  if (checkBadWord(content) || checkBadWord(name)) return; // 含敏感词 → 直接拦截不写入
 
   await prisma.message.create({
     data: {
@@ -20,6 +27,15 @@ export async function addMessage(formData: FormData) {
     },
   });
   revalidatePath('/message');
+    // 📧 邮件通知：有人留言了！
+    try {
+      await sendNotifyMail({
+        subject: "💌 AizyBase 新留言提醒",
+        text: `有人给你留言啦！\n\n留言者：${name}\n内容：${content}`,
+      });
+    } catch (e) {
+      console.log("邮件发送失败（不影响留言保存）", e);
+    }  
 }
 
 // 删除留言（只能删自己发的）
@@ -73,10 +89,14 @@ export async function updateMessage(id: string, content: string) {
 export async function addReply(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { success: false, msg: "请先登录" };
+    // 限流
+    const limit = await rateLimit("message");
+    if (!limit.ok) return { success: false, msg: limit.msg };  
 
   const messageId = formData.get("messageId") as string;
   const content = formData.get("content") as string;
   if (!messageId || !content.trim()) return { success: false, msg: "回复内容不能为空" };
+  if (checkBadWord(content)) return { success: false, msg: "回复含敏感词，已被拦截" };
 
   await prisma.reply.create({
     data: {
@@ -85,6 +105,16 @@ export async function addReply(formData: FormData) {
       userId: session.user.id,
     },
   });
+
+  // 📧 邮件通知：有人回复留言了！
+  try {
+    await sendNotifyMail({
+      subject: "💬 AizyBase 新回复提醒",
+      text: `有人回复了留言！\n\n回复内容：${content}`,
+    });
+  } catch (e) {
+    console.log("邮件发送失败（不影响回复保存）", e);
+  }
   revalidatePath("/message");
   return { success: true, msg: "回复成功" };
 }

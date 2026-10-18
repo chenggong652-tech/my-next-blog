@@ -17,6 +17,66 @@ import type { Metadata } from "next";
 import HistoryTracker from "@/app/components/HistoryTracker";
 import RelativeTime from "@/app/components/RelativeTime";
 import ReactMarkdown from "react-markdown";
+import { unstable_cache } from "next/cache";
+import RewardButton from "@/app/components/RewardButton";
+
+const COMMENT_PAGE_SIZE = 5; // 每页显示 5 条评论（模块级：缓存函数和页面共用）
+
+// 🧠 缓存：文章正文 + 评论区 + 相关文章 + 上下篇（第 19 课）
+// 所有人看到的数据都一样 → 60 秒内复用，热门文章打开秒开，不用每次跨洋查库
+const getBlogData = unstable_cache(
+  async (blogId: string, commentPage: number) => {
+
+    // 读取文章（顺便查出作者信息）
+    const blog = await prisma.blog.findUnique({
+      where: { id: blogId },
+      include: { user: true, tags: { include: { tag: true } } },
+    });
+
+    if (!blog) return null; // 文章不存在 → 交给页面显示"文章不存在"
+
+    // 其余数据并行查（Promise.all：一次等全部，比排队快）
+    const [favoriteCount, relatedBlogs, prevBlog, nextBlog, comments, commentTotal] = await Promise.all([
+      prisma.favorite.count({ where: { blogId: blog.id } }), // 收藏总数
+      // 相关文章：同分类的其他文章（排除自己，只取3篇）
+      prisma.blog.findMany({
+        where: { category: blog.category, id: { not: blog.id } },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+      }),
+      // 上一篇：发布时间比我早的、最近的那篇
+      prisma.blog.findFirst({
+        where: { createdAt: { lt: blog.createdAt } },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, title: true },
+      }),
+      // 下一篇：发布时间比我晚的、最早的那篇
+      prisma.blog.findFirst({
+        where: { createdAt: { gt: blog.createdAt } },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, title: true },
+      }),
+      // 评论区数据：这篇文章的评论（每页5条，连带回复和作者）
+      prisma.comment.findMany({
+        where: { blogId: blog.id },
+        orderBy: { createdAt: "desc" },
+        skip: (commentPage - 1) * COMMENT_PAGE_SIZE,
+        take: COMMENT_PAGE_SIZE,
+        include: {
+          user: true,
+          _count: { select: { likes: true } },
+          replies: { include: { user: true }, orderBy: { createdAt: "asc" } },
+        },
+      }),
+      // 评论总数（算分页用）
+      prisma.comment.count({ where: { blogId: blog.id } }),
+    ]);
+
+    return { blog, favoriteCount, relatedBlogs, prevBlog, nextBlog, comments, commentTotal };
+  },
+  ["blog-detail"], // 缓存钥匙（文章 id + 评论页 变化 = 不同缓存）
+  { revalidate: 60 } // 60 秒后作废重新查（新评论/新阅读不会一直旧）
+);
 
 // 根据文章内容，动态生成网页标题
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -56,14 +116,11 @@ export default async function BlogDetailPage({ params, searchParams }: { params:
   // 获取登录状态
   const session = await auth();
 
-  // 读取文章（顺便查出作者信息）
-  const blog = await prisma.blog.findUnique({
-    where: { id },
-    include: { user: true, tags: { include: { tag: true } } },
-  });
+  // 🧠 从缓存拿详情数据（第 19 课：第一次查库，60 秒内复用 → 秒开）
+  const data = await getBlogData(id, commentPage);
 
   // 如果文章不存在，显示提示页（先判空！后面才能安全使用 blog）
-  if (!blog) {
+  if (!data) {
     return (
       <main style={{ maxWidth: "800px", margin: "40px auto" }}>
         <h1>文章不存在</h1>
@@ -72,38 +129,15 @@ export default async function BlogDetailPage({ params, searchParams }: { params:
     );
   }
 
-  // 查当前用户是否收藏过 + 这篇文章的收藏总数
+  const { blog, favoriteCount, relatedBlogs, prevBlog, nextBlog, comments, commentTotal } = data;
+
+  // 查当前用户是否收藏过（用户相关 → 保持实时，不缓存）
   const favorite = session?.user?.id
     ? await prisma.favorite.findUnique({
         where: { userId_blogId: { userId: session.user.id, blogId: blog.id } },
       })
     : null;
-  const favoriteCount = await prisma.favorite.count({ where: { blogId: blog.id } });
-
-  // 相关文章：同分类的其他文章（排除自己，只取3篇）
-  const relatedBlogs = await prisma.blog.findMany({
-    where: { category: blog.category, id: { not: blog.id } },
-    orderBy: { createdAt: "desc" },
-    take: 3,
-  });
-        // 评论区数据：这篇文章的评论（每页5条，连带回复和作者）
-        const COMMENT_PAGE_SIZE = 5; // 每页显示 5 条评论
-        const [comments, commentTotal] = await Promise.all([
-          prisma.comment.findMany({
-            where: { blogId: blog.id },
-            orderBy: { createdAt: "desc" }, // 最新的在最上面
-            skip: (commentPage - 1) * COMMENT_PAGE_SIZE, // 跳过前面几页的条数
-            take: COMMENT_PAGE_SIZE,                     // 只取这一页的条数
-            include: {
-              user: true, // 顺带查出每条评论的作者
-              _count: { select: { likes: true } }, // 顺带数每条评论的点赞数
-              replies: { include: { user: true }, orderBy: { createdAt: "asc" } }, // 回复（连带回复作者，从旧到新）
-            },
-          }),
-          prisma.comment.count({ where: { blogId: blog.id } }), // 评论总数（算分页用）
-        ]);
         const commentTotalPage = Math.ceil(commentTotal / COMMENT_PAGE_SIZE); // 总共有几页
-    
 
     // 当前用户给哪些评论点过赞（收藏按钮的套路：查"我赞过的"集合）
     const myLikes = session?.user?.id
@@ -113,19 +147,6 @@ export default async function BlogDetailPage({ params, searchParams }: { params:
         })
       : [];
     const likedSet = new Set(myLikes.map((l) => l.commentId));
-
-      // 上一篇/下一篇：按发布时间找（lt=比我早 gt=比我晚）
-  // select：只取 id 和标题（轻量查询，不拖全部字段）
-  const prevBlog = await prisma.blog.findFirst({
-    where: { createdAt: { lt: blog.createdAt } }, // 新知识：发布时间比我早的
-    orderBy: { createdAt: "desc" },               // 从新到旧排 → 取最新的那篇旧的 = 上一篇
-    select: { id: true, title: true },            // 新知识：只取需要的字段
-  });
-  const nextBlog = await prisma.blog.findFirst({
-    where: { createdAt: { gt: blog.createdAt } }, // 发布时间比我晚的
-    orderBy: { createdAt: "asc" },                // 从旧到新排 → 取最早的那篇新的 = 下一篇
-    select: { id: true, title: true },
-  });
 
   
   return (
@@ -138,7 +159,7 @@ export default async function BlogDetailPage({ params, searchParams }: { params:
           "@context": "https://schema.org",
           "@type": "BlogPosting",
           headline: blog.title,
-          datePublished: blog.createdAt.toISOString(),
+          datePublished: new Date(blog.createdAt).toISOString(),
           author: { "@type": "Person", name: blog.user?.name || "匿名" },
           image: blog.coverImage || undefined,
         }),
@@ -179,6 +200,15 @@ export default async function BlogDetailPage({ params, searchParams }: { params:
         ) : null}
         
         <h1 style={{ margin: "16px 0 8px", fontSize: "32px" }}>{blog.title}</h1>
+        {blog.series && (
+          <Link
+            href={`/series/${encodeURIComponent(blog.series)}`}
+            style={{ display: "inline-block", marginTop: "6px", padding: "4px 12px", borderRadius: "999px", background: "#ede9fe", color: "#6d28d9", fontSize: "13px", textDecoration: "none" }}
+          >
+            📚 {blog.series} 系列
+          </Link>
+        )}
+
                 {/* 标签徽章：有标签才显示 */}
                 {blog.tags.length > 0 && (
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" }}>
@@ -238,6 +268,11 @@ export default async function BlogDetailPage({ params, searchParams }: { params:
 >
   {blog.content}
 </ReactMarkdown>
+        </div>
+
+        {/* 赞赏：看完文章，感谢作者一杯咖啡 */}
+        <div style={{ textAlign: "center", marginTop: "32px" }}>
+          <RewardButton />
         </div>
 
         {/* 上一篇/下一篇导航：看完正文，顺着读 */}

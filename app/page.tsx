@@ -71,9 +71,9 @@ export default async function HomePage() {
   return (
     <main style={{ maxWidth: "900px", margin: "40px auto", padding: "0 20px" }}>
       <div style={{ textAlign: "center", marginBottom: "50px" }}>
-        <h1 style={{ fontSize: "36px" }}>我的简易博客网站</h1>
+      <h1 className="home-title" style={{ fontSize: "36px" }}>我的简易博客网站</h1>
         <p style={{ color: "var(--text-light)", marginTop: 10 }}>分享文字，互相留言交流</p>
-        <div style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: 24 }}>
+        <div className="home-btns" style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: 24 }}>
           <Link href="/blog">
             <button style={{ padding: "10px 20px", fontSize: 16, borderRadius:"8px" }}>进入博客列表</button>
           </Link>
@@ -87,9 +87,9 @@ export default async function HomePage() {
 
       {/* 📊 网站数据统计：4个数字小卡片 */}
       <div
+        className="home-stats"
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr 1fr",
           gap: "12px",
           marginBottom: "40px",
         }}
@@ -112,7 +112,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "40px" }}>
+      <div className="home-sections" style={{ display: "grid", gap: "40px" }}>
         {/* 📝最新博客区域，下面循环出来的每一个div就是【博客卡片】 */}
         <div>
           <h2 style={{ borderBottom: "1px solid #ccc", paddingBottom: 8 }}>📝 最新博客</h2>

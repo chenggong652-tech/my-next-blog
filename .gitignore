@@ -46,3 +46,8 @@ next-env.d.ts
 /scripts/
 
 dev-server.log
+
+# 设计过程文件（Brief 等，不用推 GitHub）
+/.creative-design/
+
+# （第 20 课）public/music 的音频/封面已加入版本控制——音乐馆上线需要它们

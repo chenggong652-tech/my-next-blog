@@ -42,14 +42,12 @@ export default async function RootLayout({
         <VisitTracker />
         <ServiceWorkerRegister />
         <nav
-  className="p-4 flex gap-6 items-center"
+  className="main-nav p-4 flex gap-6 items-center"
+
   style={{
     background: "#ffffff",
     borderBottom: "1px solid #e5e7eb",
     boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-    flexWrap: "nowrap",        // ① 禁止换行：永远一行
-    overflowX: "auto",         // ② 放不下时出现横向滚动
-    whiteSpace: "nowrap",      // ③ 链接文字也不换行
     scrollbarWidth: "thin",    // ④ 滚动条细一点，好看
   }}
 >
@@ -62,6 +60,7 @@ export default async function RootLayout({
           <Link href="/hot" className="text-blue-600">🔥热门榜单</Link>
           <Link href="/message" className="text-blue-600">留言板</Link>
           <Link href="/tags" className="text-blue-600">🏷️标签</Link>
+          <Link href="/music" className="text-blue-600">🎵 音乐馆</Link>
           <Link href="/archive" className="text-blue-600">🗂️归档</Link>
 
           {/* 右侧：根据登录状态显示 登录 或 退出 */}

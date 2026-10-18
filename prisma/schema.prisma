@@ -205,3 +205,32 @@ model Visit {
   createdAt DateTime @default(now())
 }
 
+// 音乐馆歌曲表（M7 专线）：一首歌的所有信息
+model Song {
+  id         String   @id @default(cuid())
+  title      String   // 歌名
+  genre      String   @default("未分类") // 风格：电子/流行/古风/R&B
+  cover      String?  // 封面路径（/music/covers/snow-tower.webp）
+  audioUrl   String   // 音频路径（/music/snow-tower.mp3）
+  lyrics     String?  @db.Text // 完整歌词（每行一句，歌词滚动时用）
+  isOriginal Boolean  @default(true) // true=AI原创可商用 / false=翻唱仅学习
+  status     String   @default("published") // published=上线 / hidden=隐藏
+  sortOrder  Int      @default(0) // 排序：数字小排前面
+  plays      Int      @default(0) // 播放次数：每次播放 +1（热歌榜用）
+  likes      SongLike[] // 反向关系：这首歌被谁收藏过
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// 歌曲收藏表（M7 专线）：谁收藏了哪首歌
+model SongLike {
+  id        String   @id @default(cuid())
+  songId    String
+  userId    String
+  createdAt DateTime @default(now())
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade) // 歌被删 → 收藏记录一起删
+
+  @@unique([songId, userId]) // 同一人同一首歌只能收藏一次（防重复点❤️）
+}
+
+

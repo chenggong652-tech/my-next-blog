@@ -69,3 +69,20 @@ body {
 .md-body a { color: var(--link); }
 .md-body hr { border: none; border-top: 1px solid var(--card-border); margin: 20px 0; }
 
+/* ===== 响应式：手机适配（第 18 课） ===== */
+/* 默认（电脑）布局 */
+.home-stats { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.home-sections { grid-template-columns: 1fr 1fr 1fr; }
+.main-nav { flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; }
+
+/* 屏幕 ≤ 768px（手机/平板竖屏）：换成手机布局 */
+@media (max-width: 768px) {
+  .home-title { font-size: 24px !important; }
+  .home-btns { flex-direction: column; }
+  .home-btns button { width: 100%; }
+  .home-stats { grid-template-columns: 1fr 1fr; }
+  .home-sections { grid-template-columns: 1fr; }
+  .main-nav { flex-wrap: wrap; overflow-x: visible; white-space: normal; }
+}
+
+

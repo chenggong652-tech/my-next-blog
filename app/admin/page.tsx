@@ -4,6 +4,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import AdminDeleteBtn from "@/app/components/AdminDeleteBtn";
 import AdminCommentDeleteBtn from "@/app/components/AdminCommentDeleteBtn";
+import { createSong, deleteSong } from "./music-actions";
+import MusicAdmin from "./MusicAdmin";
+
 
 // 后台专属 SEO：独立标题 + 永不收录（就算将来全站开放收录，后台也进不了搜索引擎）
 export const metadata: Metadata = {
@@ -73,6 +76,19 @@ export default async function AdminPage() {
       include: { user: true, blog: true },
     });
   
+        // 6. 所有歌曲（最新的在前）
+        const allSongs = await prisma.song.findMany({
+          orderBy: { createdAt: "desc" },
+        });
+
+    // 📊 音乐数据看板统计
+    const [songCount, songPlaySum, genreGroups, topSongs] = await Promise.all([
+      prisma.song.count(),
+      prisma.song.aggregate({ _sum: { plays: true } }),
+      prisma.song.groupBy({ by: ["genre"], _count: true }),
+      prisma.song.findMany({ orderBy: { plays: "desc" }, take: 5, select: { title: true, plays: true, status: true } }),
+    ]);
+    
 
   return (
     <main style={{ maxWidth: "900px", margin: "0 auto", padding: "24px" }}>
@@ -224,6 +240,81 @@ export default async function AdminPage() {
           <p style={{ color: "var(--text-light)", fontSize: "14px" }}>还没有评论</p>
         )}
       </div>
+
+            {/* 📊 音乐数据看板 */}
+            <h2 style={{ fontSize: "22px", marginTop: "40px" }}>📊 音乐数据看板</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "16px", marginTop: "12px" }}>
+              <div style={{ border: "1px solid var(--card-border)", borderRadius: "12px", padding: "16px", background: "var(--card-bg)", textAlign: "center" }}>
+                <p style={{ margin: 0, fontSize: "28px", fontWeight: "bold", color: "#f59e0b" }}>{songCount}</p>
+                <p style={{ margin: "6px 0 0", color: "var(--text-light)", fontSize: "13px" }}>总歌曲数</p>
+              </div>
+              <div style={{ border: "1px solid var(--card-border)", borderRadius: "12px", padding: "16px", background: "var(--card-bg)", textAlign: "center" }}>
+                <p style={{ margin: 0, fontSize: "28px", fontWeight: "bold", color: "#f59e0b" }}>{songPlaySum._sum.plays || 0}</p>
+                <p style={{ margin: "6px 0 0", color: "var(--text-light)", fontSize: "13px" }}>总播放次数</p>
+              </div>
+              <div style={{ border: "1px solid var(--card-border)", borderRadius: "12px", padding: "16px", background: "var(--card-bg)", textAlign: "center" }}>
+                <p style={{ margin: 0, fontSize: "28px", fontWeight: "bold", color: "#f59e0b" }}>{genreGroups.length}</p>
+                <p style={{ margin: "6px 0 0", color: "var(--text-light)", fontSize: "13px" }}>风格数量</p>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", marginTop: "12px" }}>
+              {/* 最热 Top5 */}
+              <div style={{ border: "1px solid var(--card-border)", borderRadius: "12px", padding: "16px", background: "var(--card-bg)" }}>
+                <h3 style={{ margin: 0, fontSize: "15px" }}>🔥 最热 Top5</h3>
+                <div style={{ marginTop: "8px", display: "grid", gap: "6px" }}>
+                  {topSongs.map((s, i) => (
+                    <div key={s.title} style={{ display: "flex", justifyContent: "space-between", fontSize: "14px" }}>
+                      <span>{i + 1}. {s.title} {s.status === "hidden" ? "🔒" : ""}</span>
+                      <span style={{ color: "var(--text-light)" }}>▶ {s.plays} 次</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* 风格分布 */}
+              <div style={{ border: "1px solid var(--card-border)", borderRadius: "12px", padding: "16px", background: "var(--card-bg)" }}>
+                <h3 style={{ margin: 0, fontSize: "15px" }}>🎚️ 风格分布</h3>
+                <div style={{ marginTop: "8px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                  {genreGroups.map((g) => (
+                    <span key={g.genre} style={{ padding: "4px 10px", borderRadius: "16px", background: "rgba(245,158,11,0.12)", color: "#f59e0b", fontSize: "13px" }}>
+                      {g.genre} · {g._count} 首
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 🎵 音乐管理：发布新歌 + 歌曲列表 */}
+            <h2 style={{ fontSize: "22px", marginTop: "40px" }}>🎵 音乐管理（{allSongs.length}）</h2>
+
+{/* 发布表单：填好一首歌的信息，提交就入库 */}
+<form
+  action={createSong}
+  style={{
+    border: "1px solid var(--card-border)",
+    borderRadius: "12px",
+    padding: "16px",
+    background: "var(--card-bg)",
+    marginTop: "12px",
+    display: "grid",
+    gap: "10px",
+  }}
+>
+  <input name="title" placeholder="歌名（必填）" required style={{ padding: "8px", borderRadius: "8px", border: "1px solid var(--card-border)" }} />
+  <input name="genre" placeholder="风格（如：电子/流行/古风）" defaultValue="未分类" style={{ padding: "8px", borderRadius: "8px", border: "1px solid var(--card-border)" }} />
+  <input name="cover" placeholder="封面路径（如 /music/covers/snow-tower.webp）" style={{ padding: "8px", borderRadius: "8px", border: "1px solid var(--card-border)" }} />
+  <input name="audioUrl" placeholder="音频路径（必填，如 /music/snow-tower.mp3）" required style={{ padding: "8px", borderRadius: "8px", border: "1px solid var(--card-border)" }} />
+  <textarea name="lyrics" placeholder="歌词（可选，每行一句）" rows={4} style={{ padding: "8px", borderRadius: "8px", border: "1px solid var(--card-border)" }} />
+  <label style={{ fontSize: "14px", color: "var(--text-light)" }}>
+    <input type="checkbox" name="isOriginal" defaultChecked /> AI 原创（勾选=可商用；翻唱别勾）
+  </label>
+  <button type="submit" style={{ padding: "10px", borderRadius: "8px", border: "none", background: "#2563eb", color: "#fff", fontSize: "15px", cursor: "pointer" }}>
+    🚀 发布这首歌
+  </button>
+</form>
+
+{/* 歌曲列表：每首可 ✏️ 编辑 / 🗑️ 删除 */}
+<MusicAdmin songs={allSongs} />
 
     </main>
   );

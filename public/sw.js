@@ -20,6 +20,9 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  // 只处理正常的 http/https 请求（浏览器扩展等特殊请求直接放行）
+  const url = new URL(event.request.url);
+  if (url.protocol !== "http:" && url.protocol !== "https:") return;
   event.respondWith(
     fetch(event.request)
       .then((response) => {

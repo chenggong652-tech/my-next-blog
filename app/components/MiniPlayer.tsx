@@ -1,16 +1,32 @@
 "use client";
 // app/components/MiniPlayer.tsx
-// 🎵 全站悬浮迷你播放条：任何页面底部显示"正在播放"，可播放/暂停/切歌
+// 🎵 全站悬浮迷你播放条：任何页面底部显示"正在播放"，可播放/暂停/切歌，可关闭（❌）
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePlayer } from "./PlayerProvider";
 
 export default function MiniPlayer() {
   const { song, playing, current, duration, toggle, next, prev } = usePlayer();
+  // ❌ 关闭状态：本次会话内隐藏（刷新后恢复显示）
+  const [hidden, setHidden] = useState(false);
 
-  // 没歌在播 → 不显示
-  if (!song) return null;
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("miniPlayerClosed") === "1") setHidden(true);
+    } catch {}
+  }, []);
+
+  const close = () => {
+    setHidden(true);
+    try {
+      sessionStorage.setItem("miniPlayerClosed", "1");
+    } catch {}
+  };
+
+  // 没歌在播、或被关闭 → 不显示
+  if (!song || hidden) return null;
 
   const fmt = (s: number) => {
     const m = Math.floor(s / 60);
@@ -97,6 +113,26 @@ export default function MiniPlayer() {
           {playing ? "⏸" : "▶"}
         </button>
         <button onClick={() => next()} title="下一首" style={miniBtn}>⏭</button>
+        {/* ❌ 关闭迷你条（播放不中断；刷新页面恢复显示） */}
+        <button
+          onClick={close}
+          title="关闭迷你播放条"
+          style={{
+            width: "28px",
+            height: "28px",
+            borderRadius: "50%",
+            border: "none",
+            background: "transparent",
+            color: "var(--text-light)",
+            cursor: "pointer",
+            fontSize: "15px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          ✕
+        </button>
       </div>
     </div>
   );

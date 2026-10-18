@@ -56,6 +56,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [freqData, setFreqData] = useState<Uint8Array<ArrayBuffer> | null>(null);
   const reported = useRef(false); // 防重复计数
+  const ctxRef = useRef<AudioContext | null>(null); // 音频上下文（播放前要唤醒）
 
   // 用 ref 镜像最新值（事件回调里能读到最新状态，不闭包过期）
   const songRef = useRef(song); songRef.current = song;
@@ -77,12 +78,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const source = ctx.createMediaElementSource(audio);
       source.connect(a);
       a.connect(ctx.destination);
+      ctxRef.current = ctx; // 记住上下文，播放前唤醒
       setAnalyser(a);
       setFreqData(new Uint8Array(new ArrayBuffer(a.frequencyBinCount)));
     } catch {
       // 老浏览器：没有频谱，播放照常
     }
   }, []);
+
+  // 唤醒音频上下文（浏览器自动播放策略会挂起它，播放前必须 resume）
+  const resumeCtx = () => {
+    const c = ctxRef.current;
+    if (c && c.state === "suspended") c.resume();
+  };
 
   // 切到某首歌（id 在队列里找）
   const goTo = (targetId: string | null) => {
@@ -92,6 +100,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setIndex(i);
     const a = audioRef.current;
     if (a) {
+      resumeCtx();
       a.src = queueRef.current[i].audioUrl;
       a.currentTime = 0;
       a.play();
@@ -164,6 +173,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       reported.current = false;
       const a = audioRef.current;
       if (a) {
+        resumeCtx();
         a.src = s.audioUrl;
         a.currentTime = 0;
         a.play();
@@ -173,6 +183,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const a = audioRef.current;
       if (!a) return;
       if (a.paused) {
+        resumeCtx();
         a.play();
         if (!reported.current && songRef.current) {
           reported.current = true;

@@ -17,7 +17,7 @@ export async function addMessage(formData: FormData) {
   const name = formData.get('name') as string;
   const content = formData.get('content') as string;
   if (!name || !content) return;
-  if (checkBadWord(content) || checkBadWord(name)) return; // 含敏感词 → 直接拦截不写入
+  if ((await checkBadWord(content)) || (await checkBadWord(name))) return; // 含敏感词 → 直接拦截不写入
 
   await prisma.message.create({
     data: {
@@ -96,7 +96,7 @@ export async function addReply(formData: FormData) {
   const messageId = formData.get("messageId") as string;
   const content = formData.get("content") as string;
   if (!messageId || !content.trim()) return { success: false, msg: "回复内容不能为空" };
-  if (checkBadWord(content)) return { success: false, msg: "回复含敏感词，已被拦截" };
+  if (await checkBadWord(content)) return { success: false, msg: "回复含敏感词，已被拦截" };
 
   await prisma.reply.create({
     data: {

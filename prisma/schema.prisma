@@ -28,6 +28,9 @@ model Message {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   likes MessageLike[]
   replies Reply[]
+  // 第 E4 课：索引
+  @@index([createdAt]) // 留言板按时间倒序排（最新在前）
+  @@index([userId])    // 查"我的留言"
 }
 
 
@@ -48,6 +51,25 @@ model Blog {
   tags BlogTag[] // 这篇文章挂了哪些标签（多对多）
   favorites Favorite[] // 这篇文章被哪些用户收藏了（多对多）
     comments Comment[] // 这篇文章的评论（一对多）
+  versions ArticleVersion[] // 历史版本（第D4课：每次保存留快照）
+  // 第 E4 课：索引（目录页）——网站经常按这些条件找文章
+  @@index([category]) // 按分类找文章（如"AI教程"）
+  @@index([series])   // 按系列专栏找文章
+  @@index([status])   // 按"已发布/草稿"找
+  @@index([userId])   // 找"我写的文章"
+}
+
+// 第 D4 课：文章历史版本（每次保存留快照，改坏了能回滚）
+model ArticleVersion {
+  id        String   @id @default(cuid())
+  blogId    String
+  title     String   // 当时保存的标题
+  content   String   @db.Text // 当时保存的正文
+  createdAt DateTime @default(now()) // 什么时候存的
+
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  // 第 E4 课：索引
+  @@index([blogId]) // 查某篇文章的历史版本（D4 页面每次都在用）
 }
 
 
@@ -177,6 +199,9 @@ model Comment {
   blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
   likes CommentLike[] // 这条评论收到的点赞
   replies CommentReply[] // 这条评论收到的回复
+  // 第 E4 课：索引
+  @@index([blogId]) // 查某篇文章下的评论（最常用的查询）
+  @@index([userId]) // 查"我发过的评论"
 }
 
 // 评论点赞表：记录"哪个用户给哪条评论点过赞"（和收藏表一个套路）
@@ -225,6 +250,10 @@ model Song {
   plays      Int      @default(0) // 播放次数：每次播放 +1（热歌榜用）
   likes      SongLike[] // 反向关系：这首歌被谁收藏过
   createdAt  DateTime @default(now())
+  // 第 E4 课：索引
+  @@index([genre]) // 按风格筛选歌（流行/古风/R&B）
+  @@index([status]) // 按上架/隐藏找
+  @@index([plays])  // 热歌榜按播放量排序
   updatedAt  DateTime @updatedAt
 }
 
@@ -245,6 +274,13 @@ model OperationLog {
   action    String   // 操作名：删除文章 / 删除评论 / 删除留言...
   target    String   // 被操作的对象：文章标题 / 评论内容（截断）
   userName  String   // 谁操作的（直接存名字，展示不用查库）
+  createdAt DateTime @default(now())
+}
+
+// 第 D3 课：敏感词库（后台可增删，留言/评论实时用）
+model BadWord {
+  id        String   @id @default(cuid())
+  word      String   @unique // 词不能重复（防止加两遍）
   createdAt DateTime @default(now())
 }
 

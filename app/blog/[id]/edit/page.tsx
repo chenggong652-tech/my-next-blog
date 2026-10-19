@@ -50,6 +50,15 @@ export default async function EditBlogPage({ params }: Props) {
         }}
       >
         <h1 style={{ margin: "0 0 24px" }}>编辑文章</h1>
+        {/* 第 D4 课：历史版本入口（改坏了能找回之前的底稿） */}
+        <p style={{ margin: "0 0 16px" }}>
+          <Link
+            href={`/blog/${blog.id}/versions`}
+            style={{ fontSize: 14, color: "#6366f1" }}
+          >
+            📜 查看历史版本（改坏了能回滚）
+          </Link>
+        </p>
         {/* 把文章原始数据传给表单组件 */}
         <EditBlogForm
   blogId={blog.id}

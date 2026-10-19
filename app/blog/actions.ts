@@ -87,6 +87,11 @@ export async function updateBlog(
   // 关键：只有文章的作者本人才能改
   if (blogItem.userId !== session.user.id) return { error: "无权修改别人的文章" };
 
+  // 📸 第 D4 课：保存前先给"旧版本"拍张快照（改坏了能回滚）
+  await prisma.articleVersion.create({
+    data: { blogId: id, title: blogItem.title, content: blogItem.content },
+  });
+
   await prisma.blog.update({
     where: { id },
         data: { title: title.trim(), content: content.trim(), category: category, pinned, coverImage: coverImage.trim(), status: status , series: series.trim() || null,

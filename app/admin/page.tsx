@@ -104,6 +104,55 @@ export default async function AdminPage() {
       <h1 style={{ fontSize: "28px" }}>⚙️ 管理后台</h1>
       <p style={{ color: "var(--text-light)" }}>全站数据总览</p>
 
+      <p style={{ margin: "10px 0 0" }}>
+        <a
+          href="/admin/dashboard"
+          style={{
+            display: "inline-block",
+            padding: "8px 16px",
+            borderRadius: 8,
+            background: "#6366f1",
+            color: "#fff",
+            textDecoration: "none",
+            fontSize: 14,
+          }}
+        >
+          📊 打开商业数据看板
+        </a>
+      </p>
+      <p style={{ margin: "10px 0 0" }}>
+        <a
+          href="/admin/logs"
+          style={{
+            display: "inline-block",
+            padding: "8px 16px",
+            borderRadius: 8,
+            background: "#f59e0b",
+            color: "#fff",
+            textDecoration: "none",
+            fontSize: 14,
+          }}
+        >
+          📜 操作日志
+        </a>
+      </p>
+      <p style={{ margin: "10px 0 0" }}>
+        <a
+          href="/admin/badwords"
+          style={{
+            display: "inline-block",
+            padding: "8px 16px",
+            borderRadius: 8,
+            background: "#dc2626",
+            color: "#fff",
+            textDecoration: "none",
+            fontSize: 14,
+          }}
+        >
+          🔞 敏感词库
+        </a>
+      </p>
+
       {/* 统计卡片：一排 5 个数字 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "16px", marginTop: "20px" }}>
         {stats.map((s) => (

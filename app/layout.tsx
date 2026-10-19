@@ -116,6 +116,12 @@ export default async function RootLayout({
               contact@aizybase.com
             </a>
           </p>
+
+          <p style={{ margin: "0 0 8px", color: "var(--text-light)" }}>
+            <a href="/privacy" style={{ color: "var(--link)", marginRight: 12 }}>隐私政策</a>
+            <a href="/terms" style={{ color: "var(--link)" }}>用户协议</a>
+          </p>
+          
           <p style={{ margin: 0, fontSize: "12px", color: "var(--text-light)" }}>
             闽ICP备XXXXXXXX号-1（备案后替换）· Powered by Next.js
           </p>

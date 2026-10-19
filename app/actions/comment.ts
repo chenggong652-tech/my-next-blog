@@ -19,7 +19,7 @@ export async function addComment(blogId: string, formData: FormData) {
   const content = String(formData.get("content") || "").trim();
   if (!content) return { success: false, msg: "评论不能为空" };
   if (content.length > 500) return { success: false, msg: "评论最多500字" };
-  const bad = checkBadWord(content);
+  const bad = await checkBadWord(content);
   if (bad) return { success: false, msg: `评论包含敏感词「${bad}」，已被拦截` };
 
   // 3. 写进数据库
@@ -47,7 +47,7 @@ export async function addCommentReply(blogId: string, formData: FormData) {
   if (!commentId) return { success: false, msg: "参数错误" };
   if (!content) return { success: false, msg: "回复内容不能为空" };
   if (content.length > 300) return { success: false, msg: "回复最多300字" };
-  const bad = checkBadWord(content);
+  const bad = await checkBadWord(content);
   if (bad) return { success: false, msg: `回复包含敏感词「${bad}」，已被拦截` };
 
   // 3. 写进数据库

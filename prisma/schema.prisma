@@ -58,6 +58,9 @@ model User {
   emailVerified DateTime?
   password      String?
   image         String?
+  balance       Int       @default(0) // 余额（分）：1元=100（第31课）
+    level       Int       @default(1) // 会员等级 1~5（第33课）：消费越多升越高
+  totalSpent  Int       @default(0) // 累计消费（分）：升级看的"经验值"
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
@@ -71,6 +74,8 @@ model User {
   comments Comment[] // 这个用户发表的评论
   commentLikes CommentLike[] // 这个用户给哪些评论点过赞
   commentReplies CommentReply[] // 这个用户发的评论回复
+  purchases Purchase[] // 这个用户买过哪些资源（第31课）
+  orders Order[] // 这个用户下过哪些订单（第32课）
 }
 
 model Account {
@@ -252,11 +257,41 @@ model Resource {
   description String   @db.Text // 简介：这个资源是啥、值在哪
   price       Int      @default(0) // 价格（分）：0=免费，990=9.9元
   downloadUrl String?  // 下载链接（付费/免费资源的网盘或直链）
+  purchases Purchase[] // 谁买过这个资源（第31课）
+  orders Order[] // 这个资源被下过哪些订单（第32课）
   status      String   @default("published") // published=上架 / hidden=下架
   sortOrder   Int      @default(0) // 排序：数字小排前面
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// 第 31 课：付费下载 - 购买记录表（谁买了哪个资源，防重复买 + 已购列表）
+model Purchase {
+  id         String   @id @default(cuid())
+  resourceId String
+  userId     String
+  amount     Int      // 成交价（分）
+  createdAt  DateTime @default(now())
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, userId]) // 同一资源同一人只能买一次
+}
+
+// 第 32 课：支付接入 - 订单表（下单先记"待支付"，支付成功才"已支付"，绝不一单两付）
+model Order {
+  id         String   @id @default(cuid())
+  resourceId String
+  userId     String
+  amount     Int      // 订单金额（分）
+  status     String   @default("pending") // pending=待支付 / paid=已支付 / cancelled=已取消
+  method     String   @default("balance") // balance=余额支付 / wechat=模拟微信 / alipay=模拟支付宝
+  createdAt  DateTime @default(now())
+  paidAt     DateTime? // 什么时候付的款（空=还没付）
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 
 
 

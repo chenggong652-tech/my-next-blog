@@ -77,3 +77,8 @@ commit3_out.txt
 push2_out.txt
 covers_batch_out.txt
 covers_get_out.txt
+
+# runtime logs
+dev_out.log
+dev_err.log
+

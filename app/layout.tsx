@@ -65,6 +65,7 @@ export default async function RootLayout({
           <Link href="/message" className="text-blue-600">留言板</Link>
           <Link href="/tags" className="text-blue-600">🏷️标签</Link>
           <Link href="/music" className="text-blue-600">🎵 音乐馆</Link>
+          <Link href="/resources" className="text-blue-600">🎁 资源库</Link>
           <Link href="/archive" className="text-blue-600">🗂️归档</Link>
 
           {/* 右侧：根据登录状态显示 登录 或 退出 */}

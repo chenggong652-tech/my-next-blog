@@ -243,5 +243,21 @@ model OperationLog {
   createdAt DateTime @default(now())
 }
 
+// 第 30 课：资源上架系统（商业站"货架"）
+model Resource {
+  id          String   @id @default(cuid())
+  title       String   // 资源名称：如"ChatGPT 提示词大全"
+  category    String   @default("AI 教程") // 分类：AI 教程 / 提示词 / 工具 / 模板
+  cover       String?  // 封面图（可空）
+  description String   @db.Text // 简介：这个资源是啥、值在哪
+  price       Int      @default(0) // 价格（分）：0=免费，990=9.9元
+  downloadUrl String?  // 下载链接（付费/免费资源的网盘或直链）
+  status      String   @default("published") // published=上架 / hidden=下架
+  sortOrder   Int      @default(0) // 排序：数字小排前面
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
 
 

@@ -66,3 +66,14 @@ gitstatus*.txt
 music_files.txt
 url_test.txt
 gitcheck.txt
+resource-covers.xml
+covers_*.txt
+covers_db_out.txt
+seed_res_out.txt
+res_out.txt
+songs_all_out.txt
+commit2_out.txt
+commit3_out.txt
+push2_out.txt
+covers_batch_out.txt
+covers_get_out.txt

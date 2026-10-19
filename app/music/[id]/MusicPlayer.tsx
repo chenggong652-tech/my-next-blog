@@ -24,15 +24,18 @@ export default function MusicPlayer({
   const [shareCopied, setShareCopied] = useState(false); // 📤 "已复制"提示
   const [offset, setOffset] = useState(0); // 🎚️ 歌词同步偏移（秒）
 
+  // 🐛 修复：页面跟随"当前正在播的歌"（点下一首后，标题/封面/歌词跟着切）
+  const disp = player.song || song;
+
   // 打开页面时：直接自动播放这首歌，并读回上次的歌词偏移
   useEffect(() => {
-    player.playSong(song, allSongs);
+    player.playSong(disp, allSongs);
     try {
       const saved = Number(localStorage.getItem("lyricOffset") || "0");
       if (!isNaN(saved) && saved >= -10 && saved <= 10) setOffset(saved);
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [song.id]);
+  }, [disp.id]);
 
   // 偏移一改就记住
   useEffect(() => {
@@ -44,7 +47,7 @@ export default function MusicPlayer({
   const { playing, current, duration, mode, volume, setVolume } = player;
 
   // 歌词解析（LRC 时间戳 + 均分兜底）——同第 25 课逻辑
-  const lines = song.lyrics ? song.lyrics.split("\n").filter((l) => l.trim()) : [];
+  const lines = disp.lyrics ? disp.lyrics.split("\n").filter((l) => l.trim()) : [];
   const parsed = lines.map((l) => {
     const m = /^\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]\s*(.*)$/.exec(l.trim());
     if (m) {
@@ -165,7 +168,7 @@ export default function MusicPlayer({
     const res = await fetch("/api/song/like", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: song.id }),
+      body: JSON.stringify({ id: disp.id }),
     });
     if (res.status === 401) {
       window.location.href = "/login";
@@ -178,7 +181,7 @@ export default function MusicPlayer({
   // 📤 分享：复制"歌名 + 链接"到剪贴板
   const share = async () => {
     const url = window.location.href;
-    const text = `🎵 ${song.title}（${song.genre}）| AizyBase 音乐馆\n${url}`;
+    const text = `🎵 ${disp.title}（${disp.genre}）| AizyBase 音乐馆\n${url}`;
     try {
       await navigator.clipboard.writeText(text);
       setShareCopied(true);
@@ -225,8 +228,8 @@ export default function MusicPlayer({
       style={{
         position: "relative",
         overflow: "hidden",
-        borderRadius: "28px",
-        padding: "44px",
+        borderRadius: "24px",
+        padding: "30px",
         background: "linear-gradient(135deg,#312e81 0%,#6d28d9 48%,#be185d 100%)",
         color: "#f5f3ff",
       }}
@@ -235,10 +238,10 @@ export default function MusicPlayer({
       <div
         style={{
           position: "absolute",
-          top: "-140px",
-          left: "-100px",
-          width: "520px",
-          height: "520px",
+          top: "-120px",
+          left: "-80px",
+          width: "440px",
+          height: "440px",
           borderRadius: "50%",
           background: "radial-gradient(circle, rgba(217,70,239,0.5), transparent 70%)",
           pointerEvents: "none",
@@ -247,10 +250,10 @@ export default function MusicPlayer({
       <div
         style={{
           position: "absolute",
-          bottom: "-140px",
-          right: "-100px",
-          width: "480px",
-          height: "480px",
+          bottom: "-120px",
+          right: "-80px",
+          width: "400px",
+          height: "400px",
           borderRadius: "50%",
           background: "radial-gradient(circle, rgba(251,191,36,0.35), transparent 70%)",
           pointerEvents: "none",
@@ -261,15 +264,15 @@ export default function MusicPlayer({
           position: "absolute",
           top: "25%",
           left: "58%",
-          width: "320px",
-          height: "320px",
+          width: "280px",
+          height: "280px",
           borderRadius: "50%",
           background: "radial-gradient(circle, rgba(244,114,182,0.3), transparent 70%)",
           pointerEvents: "none",
         }}
       />
       {/* 🎵 顶部：旋转唱片封面 + 歌名信息 */}
-      <div style={{ display: "flex", alignItems: "center", gap: "40px", flexWrap: "wrap", position: "relative" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "28px", flexWrap: "wrap", position: "relative" }}>
         {/* 封面 + 背后舞台放射光 */}
         <div style={{ position: "relative", flexShrink: 0 }}>
           <div
@@ -285,17 +288,17 @@ export default function MusicPlayer({
             }}
           />
           <div className={playing ? "disc spinning ktv-glow" : "disc ktv-glow"}>
-            {song.cover ? (
-              <Image src={song.cover} alt={song.title} width={380} height={380} />
+            {disp.cover ? (
+              <Image src={disp.cover} alt={disp.title} width={320} height={320} />
             ) : (
               <div className="disc-fallback">🎧</div>
             )}
           </div>
         </div>
-        <div style={{ flex: 1, minWidth: 260 }}>
+        <div style={{ flex: 1, minWidth: 240 }}>
           <h1
             style={{
-              fontSize: "42px",
+              fontSize: "36px",
               margin: "8px 0 6px",
               display: "flex",
               alignItems: "center",
@@ -306,7 +309,7 @@ export default function MusicPlayer({
               fontWeight: 800,
             }}
           >
-            {song.title}
+            {disp.title}
             <button
               onClick={toggleLike}
               title={liked ? "取消收藏" : "收藏这首歌"}
@@ -327,9 +330,9 @@ export default function MusicPlayer({
               </span>
             )}
           </h1>
-          <p style={{ color: "rgba(245,243,255,0.6)", margin: 0 }}>{song.genre}</p>
+          <p style={{ color: "rgba(245,243,255,0.6)", margin: 0 }}>{disp.genre}</p>
           <p style={{ margin: "8px 0 0", fontSize: "13px" }}>
-            {song.isOriginal ? (
+            {disp.isOriginal ? (
               <span style={{ color: "#6ee7b7", background: "rgba(16,185,129,0.15)", padding: "3px 10px", borderRadius: "999px" }}>✅ AI 原创</span>
             ) : (
               <span style={{ color: "#fbbf24", background: "rgba(245,158,11,0.15)", padding: "3px 10px", borderRadius: "999px" }}>⚠️ 翻唱学习版（不商用）</span>
@@ -566,10 +569,10 @@ export default function MusicPlayer({
       {/* 唱片旋转动画 + 手机端适配 */}
       <style jsx>{`
         .disc {
-          border-radius: 16px;
+          border-radius: 14px;
           overflow: hidden;
-          width: 380px;
-          height: 380px;
+          width: 320px;
+          height: 320px;
           box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
           flex-shrink: 0;
           position: relative;

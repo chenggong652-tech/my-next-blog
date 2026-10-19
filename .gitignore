@@ -62,3 +62,7 @@ t1*.txt
 
 # 本地数据库备份（含数据快照，绝不推送到 GitHub）
 /backups/
+gitstatus*.txt
+music_files.txt
+url_test.txt
+gitcheck.txt

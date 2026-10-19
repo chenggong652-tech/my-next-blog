@@ -113,6 +113,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const i = queueRef.current.findIndex((s) => s.id === targetId);
     if (i < 0) return;
     setIndex(i);
+    setSong(queueRef.current[i]); // 🐛 修复：切歌时必须同步"当前歌"（否则页面标题/封面/歌词不跟随）
     const a = audioRef.current;
     if (a) {
       resumeCtx();

@@ -74,7 +74,7 @@ export default async function SongPage({ params }: { params: Promise<{ id: strin
   };
 
   return (
-    <main style={{ maxWidth: "1000px", margin: "40px auto", padding: "0 20px" }}>
+    <main style={{ maxWidth: "820px", margin: "40px auto", padding: "0 20px" }}>
       {/* 给搜索引擎看的"歌曲身份证"（访客看不见，Ctrl+U 能看见） */}
       <script
         type="application/ld+json"

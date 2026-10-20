@@ -27,15 +27,15 @@ export default function MusicPlayer({
   // 🐛 修复：页面跟随"当前正在播的歌"（点下一首后，标题/封面/歌词跟着切）
   const disp = player.song || song;
 
-  // 打开页面时：直接自动播放这首歌，并读回上次的歌词偏移
+  // 打开页面时：直接自动播放"URL 指定的这首歌"（不再被全局播放器上次播放的歌劫持）
   useEffect(() => {
-    player.playSong(disp, allSongs);
+    player.playSong(song, allSongs);
     try {
       const saved = Number(localStorage.getItem("lyricOffset") || "0");
       if (!isNaN(saved) && saved >= -10 && saved <= 10) setOffset(saved);
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disp.id]);
+  }, [song.id]);
 
   // 偏移一改就记住
   useEffect(() => {

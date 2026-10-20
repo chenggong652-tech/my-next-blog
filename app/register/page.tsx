@@ -47,7 +47,7 @@ export default async function RegisterPage({ searchParams }: Props) {
           }
 
           // 3. 密码加密（bcrypt 加盐哈希，不存明文）
-          const hashedPassword = await bcrypt.hash(password, 10);
+          const hashedPassword = await bcrypt.hash(password, 12);
 
           // 4. 创建用户
           await prisma.user.create({

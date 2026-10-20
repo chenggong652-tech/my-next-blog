@@ -36,7 +36,7 @@ export async function changePassword(
   if (!oldOk) return { error: "旧密码不正确" };
 
   // 6. 新密码加密后存进去
-  const hashed = await bcrypt.hash(newPassword, 10);
+  const hashed = await bcrypt.hash(newPassword, 12);
   await prisma.user.update({
     where: { id: user.id },
     data: { password: hashed },

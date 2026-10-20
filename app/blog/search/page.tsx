@@ -11,55 +11,81 @@ export default async function BlogSearchPage({
   const keyword = params.keyword || "";
   const selectedCategory = params.category || ""; // 新增：URL 上的分类参数
 
-  // 🧠 高亮函数：把关键词标成黄色
-  // 先消毒（防XSS）→ 再替换关键词加 <mark> 标签
-  function highlight(text: string, keyword: string) {
-    if (!keyword) return text; // 没搜索词就不用处理
+    // 🧠 高亮函数（V1升级版）：支持多个词一起标黄
+  // 先消毒（防XSS）→ 再逐个词加 <mark> 标签
+  function highlight(text: string, words: string[]) {
+    if (!words.length) return text; // 没搜索词就不用处理
     // 第1步：消毒——把HTML符号转成安全文本（<script> 变成 &lt;script&gt;，显示出来但不会执行）
     const safe = text
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
-    // 第2步：正则特殊字符转义（关键词里有 . * ? 等符号时不报错）
-    const kw = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    // 第3步：把匹配关键词的地方包上 <mark>（黄色背景）
-    return safe.replace(
-      new RegExp(kw, "gi"),
-      (match) => `<mark style="background:#fef08a;color:#713f12;border-radius:3px;padding:0 2px">${match}</mark>`
-    );
+    // 第2步：遍历每一个词，分别高亮（"AI 学习" → AI 和 学习 都标黄）
+    let result = safe;
+    for (const w of words) {
+      const kw = w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // 正则特殊字符转义
+      result = result.replace(
+        new RegExp(`(${kw})`, "gi"),
+        `<mark style="background:#fef08a;color:#713f12;border-radius:3px;padding:0 2px">$1</mark>`
+      );
+    }
+    return result;
   }
 
-  // 新增：查所有已发布文章的分类（distinct = 去重，每个分类只出现一次）
-  const categories = await prisma.blog.findMany({
-    where: { status: "published" },
-    distinct: ["category"],
-    select: { category: true },
-  });
 
-  // 查询：标题或内容里包含关键词的文章（模糊查询）+ 分类筛选
-  const results = keyword
-    ? await prisma.blog.findMany({
-        where: {
-          status: "published",   // 只搜已发布的
-          // 新增：选了分类就只搜这个分类（没选就不限制）
-          ...(selectedCategory ? { category: selectedCategory } : {}),
-          OR: [
-            { title: { contains: keyword } },
-            { content: { contains: keyword } },
-            { category: { contains: keyword } },
-          ],
-        },
-        orderBy: { createdAt: "desc" },
-        include: { user: true },
-      })
-    : [];
+  // V1.5：拆词——把关键词按空格/逗号/顿号拆开（"AI 学习" → ["AI","学习"]）
+  const words = keyword
+    .split(/[\s,，、;；]+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length > 0);
+
+  // V1.5：两个查询同时发出（Promise.all = 一次"出国"往返，分类和文章一起查）
+  // 原来：先查分类 → 等 → 再查文章（串行，出国两次）；现在：并发（出国一次）
+  const [categories, results] = await Promise.all([
+    // 查询1：所有已发布文章的分类（distinct = 去重，每个分类只出现一次）
+    prisma.blog.findMany({
+      where: { status: "published" },
+      distinct: ["category"],
+      select: { category: true },
+    }),
+    // 查询2：搜索结果（拆词 + 忽略大小写 + 限量20条）
+    words.length
+      ? prisma.blog.findMany({
+          where: {
+            status: "published",   // 只搜已发布的
+            // 选了分类就只搜这个分类（没选就不限制）
+            ...(selectedCategory ? { category: selectedCategory } : {}),
+            // AND：搜的每个词都必须出现在标题/内容/分类里（词越多越精准）
+            AND: words.map((w) => ({
+              OR: [
+                { title: { contains: w, mode: "insensitive" } },
+                { content: { contains: w, mode: "insensitive" } },
+                { category: { contains: w, mode: "insensitive" } },
+              ],
+            })),
+          },
+          orderBy: { createdAt: "desc" },
+          // V1.5：只取页面要用的字段（少搬数据就快；且不把用户敏感信息带进页面）
+          select: {
+            id: true,
+            title: true,
+            content: true,   // 摘要前80字要用
+            category: true,
+            userId: true,
+            createdAt: true,
+            user: { select: { name: true } }, // 只取昵称，不取整个用户对象
+          },
+          take: 20, // 最多显示20条：结果再多也够看了，省加载时间
+        })
+      : [],
+  ]);
 
   return (
     <main style={{ maxWidth: "800px", margin: "40px auto" }}>
       <h1>博客搜索</h1>
 
       {/* 搜索表单：提交后 URL 变成 /blog-search?keyword=xxx&category=xxx */}
-      <form action="/blog-search" method="GET" style={{ margin: "20px 0" }}>
+      <form action="/blog/search" method="GET" style={{ margin: "20px 0" }}>
         <input
           name="keyword"
           defaultValue={keyword}
@@ -127,7 +153,7 @@ export default async function BlogSearchPage({
             }}
           >
             <Link href={`/blog/${blog.id}`}>
-              <h3 style={{ margin: 0, color: "var(--link)" }} dangerouslySetInnerHTML={{ __html: highlight(blog.title, keyword) }} />
+              <h3 style={{ margin: 0, color: "var(--link)" }} dangerouslySetInnerHTML={{ __html: highlight(blog.title, words) }} />
             </Link>
             <span
               style={{
@@ -146,7 +172,7 @@ export default async function BlogSearchPage({
             <p
               style={{ fontSize: 13, color: "var(--text-light)", marginTop: 6 }}
               dangerouslySetInnerHTML={{
-                __html: highlight(blog.content.slice(0, 80), keyword) + (blog.content.length > 80 ? "…" : ""),
+                __html: highlight(blog.content.slice(0, 80), words) + (blog.content.length > 80 ? "…" : ""),
               }}
             />
             <p style={{ fontSize: 13, color: "var(--text-light)", marginTop: 6 }}>

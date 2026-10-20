@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { logAction } from "@/lib/log";
 import { redirect } from "next/navigation";
+import { sanitizeCover } from "@/lib/cover-check";
 
 // 表单校验结果类型：成功返回空对象，失败返回错误信息
 export type BlogFormState = {
@@ -24,6 +25,9 @@ export async function createBlog(
   const content = (formData.get("content") as string) || "";
   const category = (formData.get("category") as string) || "未分类";
   const coverImage = (formData.get("coverImage") as string) || "";
+  // X2：服务端封面安检——前端锁会被绕过，这里再锁一次
+  const coverCheck = sanitizeCover(coverImage);
+  if (typeof coverCheck === "object") return { error: coverCheck.error };
   const tags = formData.getAll("tags") as string[]; // 勾选的多个标签名
   const status = (formData.get("status") as string) || "published";
   const series = (formData.get("series") as string) || "";
@@ -41,7 +45,7 @@ export async function createBlog(
       title: title.trim(),
       content: content.trim(),
       category: category,
-      coverImage: coverImage.trim(),
+      coverImage: coverCheck,
       status: status,
       series: series.trim() || null,
       userId: session.user.id, // 记录作者是谁
@@ -72,6 +76,8 @@ export async function updateBlog(
   const category = (formData.get("category") as string) || "未分类";
   const pinned = formData.get("pinned") === "on";
   const coverImage = (formData.get("coverImage") as string) || "";
+  const coverCheck = sanitizeCover(coverImage);
+  if (typeof coverCheck === "object") return { error: coverCheck.error };
   const status = (formData.get("status") as string) || "published";
   const series = (formData.get("series") as string) || "";
 
@@ -94,8 +100,15 @@ export async function updateBlog(
 
   await prisma.blog.update({
     where: { id },
-        data: { title: title.trim(), content: content.trim(), category: category, pinned, coverImage: coverImage.trim(), status: status , series: series.trim() || null,
-        },
+    data: {
+      title: title.trim(),
+      content: content.trim(),
+      category: category,
+      pinned,
+      coverImage: coverCheck,
+      status: status,
+      series: series.trim() || null,
+    },
   });
   revalidatePath("/blog");
   revalidatePath(`/blog/${id}`);

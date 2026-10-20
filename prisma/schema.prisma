@@ -85,6 +85,8 @@ model User {
   totalSpent  Int       @default(0) // 累计消费（分）：升级看的"经验值"
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  failCount     Int       @default(0) // 第 X3 课：登录失败次数（防爆破）
+  lockUntil     DateTime? // 第 X3 课：锁定到几点几分（null=没被锁）
   accounts      Account[]
   sessions      Session[]
   blogs         Blog[]

@@ -60,7 +60,7 @@ export default async function RootLayout({
           <Link href="/about" className="text-blue-600">关于我们</Link>
           <Link href="/users" className="text-blue-600">用户列表</Link>
           <Link href="/blog" className="text-blue-600">博客列表</Link>
-          <Link href="/blog-search" className="text-blue-600">博客搜索</Link>
+          <Link href="/blog/search" className="text-blue-600">博客搜索</Link>
           <Link href="/hot" className="text-blue-600">🔥热门榜单</Link>
           <Link href="/message" className="text-blue-600">留言板</Link>
           <Link href="/tags" className="text-blue-600">🏷️标签</Link>

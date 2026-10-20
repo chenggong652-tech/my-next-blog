@@ -91,7 +91,7 @@ export default async function ResourcesPage({
       {/* 资源卡片网格 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
         {resources.map((r) => (
-          <ResourceCard key={r.id} r={r} owned={ownedIds.has(r.id)} balance={balance} />
+          <ResourceCard key={r.id} r={r} owned={ownedIds.has(r.id)} balance={balance} level={level} />
         ))}
 
         {resources.length === 0 && (

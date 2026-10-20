@@ -2,8 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/admin";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import AdminDeleteBtn from "@/app/components/AdminDeleteBtn";
+import AdminPublishBtn from "@/app/components/AdminPublishBtn";
 import AdminCommentDeleteBtn from "@/app/components/AdminCommentDeleteBtn";
+import ResourceSaleForm from "./ResourceSaleForm";
 import { createSong, deleteSong } from "./music-actions";
 import MusicAdmin from "./MusicAdmin";
 
@@ -25,6 +28,39 @@ const btn: React.CSSProperties = {
   fontSize: "14px",
 };
 
+// 🅰️ A2 补丁：后台统计卡片缓存——数字不常变，30秒内直接复用上次结果，不用每次跨洋重查
+const getStats = unstable_cache(
+  async () => {
+    const [userCount, blogCount, messageCount, commentCount, favoriteCount] =
+      await Promise.all([
+        prisma.user.count(),
+        prisma.blog.count(),
+        prisma.message.count(),
+        prisma.comment.count(),
+        prisma.favorite.count(),
+      ]);
+    return { userCount, blogCount, messageCount, commentCount, favoriteCount };
+  },
+  ["admin-stats"],
+  { revalidate: 30 }
+);
+
+// 🅰️ A2 补丁：音乐看板统计缓存（总数/播放/风格，30秒复用）
+const getMusicStats = unstable_cache(
+  async () => {
+    const [songCount, songPlaySum, genreGroups, topSongs, genrePlaySum] = await Promise.all([
+      prisma.song.count(),
+      prisma.song.aggregate({ _sum: { plays: true } }),
+      prisma.song.groupBy({ by: ["genre"], _count: true }),
+      prisma.song.findMany({ orderBy: { plays: "desc" }, take: 5, select: { title: true, plays: true, status: true } }),
+      prisma.song.groupBy({ by: ["genre"], _sum: { plays: true } }), // 每个风格的播放合计
+    ]);
+    return { songCount, songPlaySum, genreGroups, topSongs, genrePlaySum };
+  },
+  ["admin-music-stats"],
+  { revalidate: 30 }
+);
+
 
 // 后台主页：只有管理员能看
 export default async function AdminPage() {
@@ -40,15 +76,8 @@ export default async function AdminPage() {
     );
   }
 
-  // 2. 统计全站数据（count = 数一数每张表有多少条）
-  const [userCount, blogCount, messageCount, commentCount, favoriteCount] =
-    await Promise.all([
-      prisma.user.count(),
-      prisma.blog.count(),
-      prisma.message.count(),
-      prisma.comment.count(),
-      prisma.favorite.count(),
-    ]);
+  // 2. 统计全站数据（缓存版：30秒内复用，不用每次跨洋重查）
+  const { userCount, blogCount, messageCount, commentCount, favoriteCount } = await getStats();
 
   const stats = [
     { label: "👥 注册用户", value: userCount },
@@ -58,45 +87,25 @@ export default async function AdminPage() {
     { label: "❤️ 收藏总数", value: favoriteCount },
   ];
   
-  // 3. 所有文章（连带作者名一起查，最新的在前）
-  const allBlogs = await prisma.blog.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { user: true },
-  });
+  // 3-7. 文章/用户/评论/歌曲/日志 —— 5 个查询一起并行发（同时查，谁先回先收，总时间=最慢那个，不再排队等）
+  const [allBlogs, allUsers, allComments, allSongs, recentLogs] = await Promise.all([
+    prisma.blog.findMany({ orderBy: { createdAt: "desc" }, include: { user: true } }), // 所有文章（连带作者名）
+    prisma.user.findMany({ orderBy: { createdAt: "asc" }, include: { _count: { select: { blogs: true } } } }), // 所有用户（_count 顺带数每人发了多少篇文章）
+    prisma.comment.findMany({ orderBy: { createdAt: "desc" }, include: { user: true, blog: true } }), // 所有评论（连带"谁评论的"+"评论哪篇"）
+    prisma.song.findMany({ orderBy: { createdAt: "desc" } }), // 所有歌曲（最新的在前）
+    prisma.operationLog.findMany({ orderBy: { createdAt: "desc" }, take: 20 }), // 最近操作日志（取20条）
+  ]);
 
-  // 4. 所有用户（新知识：_count 顺带数每人发了多少篇文章）
-  const allUsers = await prisma.user.findMany({
-    orderBy: { createdAt: "asc" },
-    include: { _count: { select: { blogs: true } } },
-  });
-
-    // 5. 所有评论（连带"谁评论的"+"评论哪篇"，最新的在前）
-    const allComments = await prisma.comment.findMany({
-      orderBy: { createdAt: "desc" },
-      include: { user: true, blog: true },
-    });
-  
-        // 6. 所有歌曲（最新的在前）
-        const allSongs = await prisma.song.findMany({
-          orderBy: { createdAt: "desc" },
-        });
-
-                // 7. 最近操作日志（最新的在前，取20条）
-                const recentLogs = await prisma.operationLog.findMany({
-                  orderBy: { createdAt: "desc" },
-                  take: 20,
-                });        
-
-    // 📊 音乐数据看板统计
-    const [songCount, songPlaySum, genreGroups, topSongs, genrePlaySum] = await Promise.all([
-      prisma.song.count(),
-      prisma.song.aggregate({ _sum: { plays: true } }),
-      prisma.song.groupBy({ by: ["genre"], _count: true }),
-      prisma.song.findMany({ orderBy: { plays: "desc" }, take: 5, select: { title: true, plays: true, status: true } }),
-      prisma.song.groupBy({ by: ["genre"], _sum: { plays: true } }), // 每个风格的播放合计
-    ]);
+    // 📊 音乐数据看板统计（缓存版：30秒复用）
+    const { songCount, songPlaySum, genreGroups, topSongs, genrePlaySum } = await getMusicStats();
     const maxGenrePlays = Math.max(...genrePlaySum.map((g) => g._sum.plays || 0), 1); // 风格最大播放数（算比例用）
     const maxSongPlays = Math.max(...topSongs.map((s) => s.plays), 1); // 热歌最大播放数
+
+    // 🅲1 所有资源（促销管理用）
+    const allResources = await prisma.resource.findMany({
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+      select: { id: true, title: true, price: true, discountPrice: true, discountEndAt: true, status: true },
+    });
     
 
   return (
@@ -202,6 +211,17 @@ export default async function AdminPage() {
         📊 访问统计 →
       </Link>
 
+      {/* 🅲1 资源促销管理：给商品上"限时折扣" */}
+      <h2 style={{ fontSize: "22px", marginTop: "40px" }}>🎁 资源促销管理（{allResources.length}）</h2>
+      <div style={{ marginTop: "12px" }}>
+        {allResources.map((r) => (
+          <ResourceSaleForm key={r.id} r={r} />
+        ))}
+        {allResources.length === 0 && (
+          <p style={{ color: "var(--text-light)", fontSize: "14px" }}>还没有资源</p>
+        )}
+      </div>
+
       {/* 文章管理：所有文章，管理员可删 */}
       <h2 style={{ fontSize: "22px", marginTop: "40px" }}>📝 文章管理（{allBlogs.length}）</h2>
       <div style={{ marginTop: "12px" }}>
@@ -232,8 +252,50 @@ export default async function AdminPage() {
                 </span>
               )}
 
+              {/* 🅰️ A2 第二站：SEO 体检仪——3格全填=绿灯，缺=黄灯，全空=红灯 */}
+              <span
+                style={{
+                  display: "inline-block",
+                  marginTop: "6px",
+                  marginLeft: "8px",
+                  padding: "2px 8px",
+                  borderRadius: "4px",
+                  fontSize: "12px",
+                  background:
+                    b.seoTitle && b.seoDescription && b.keywords
+                      ? "#dcfce7"
+                      : b.seoTitle || b.seoDescription || b.keywords
+                      ? "#fef9c3"
+                      : "#fee2e2",
+                  color:
+                    b.seoTitle && b.seoDescription && b.keywords
+                      ? "#166534"
+                      : b.seoTitle || b.seoDescription || b.keywords
+                      ? "#854d0e"
+                      : "#991b1b",
+                }}
+              >
+                {b.seoTitle && b.seoDescription && b.keywords
+                  ? "🟢 SEO 完善"
+                  : b.seoTitle || b.seoDescription || b.keywords
+                  ? "🟡 SEO 补 " +
+                    [b.seoTitle, b.seoDescription, b.keywords].filter((x) => !x).length +
+                    " 项"
+                  : "🔴 SEO 空白"}
+              </span>
+
             </div>
-            <AdminDeleteBtn blogId={b.id} />
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              {b.status === "draft" && (
+                <>
+                  <Link href={`/blog/${b.id}/edit`} style={{ padding: "4px 12px", borderRadius: "6px", border: "1px solid #f59e0b", color: "#f59e0b", fontSize: "13px", textDecoration: "none" }}>
+                    ✏️ 编辑
+                  </Link>
+                  <AdminPublishBtn blogId={b.id} />
+                </>
+              )}
+              <AdminDeleteBtn blogId={b.id} />
+            </div>
           </div>
         ))}
       </div>

@@ -75,6 +75,7 @@ export default async function RootLayout({
               <>
                 <InstallButton />
                 <Link href="/favorites" className="text-blue-600">❤️收藏</Link>
+                <Link href="/promo" className="text-blue-600">🤝推广赚钱</Link>
                 {await isAdmin() && (
                   <Link href="/admin" className="text-blue-600">⚙️后台</Link>
                 )}

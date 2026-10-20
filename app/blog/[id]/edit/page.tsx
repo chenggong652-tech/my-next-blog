@@ -68,6 +68,9 @@ export default async function EditBlogPage({ params }: Props) {
   blogPinned={blog.pinned}
   blogCover={blog.coverImage ?? ""}
   blogSeries={blog.series ?? ""}
+  blogSeoTitle={blog.seoTitle ?? ""}
+  blogSeoDescription={blog.seoDescription ?? ""}
+  blogKeywords={blog.keywords ?? ""}
 />
       </div>
     </main>

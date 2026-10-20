@@ -1,21 +1,29 @@
 // app/resources/ResourceCard.tsx
 // 第 31-32 课：资源卡片（购买前先选支付方式：余额 / 模拟微信 / 模拟支付宝）
+// 🅲1 升级：卡片显示限时折扣（活动价 + 原价划线 + 限时标签）
 "use client";
 import { useState } from "react";
+import { effectivePrice, isOnSale } from "@/lib/vip"; // 🅲1 共用最终价计算器（和支付同一个算法）
 
 export default function ResourceCard({
   r,
   owned,
   balance,
+  level = 1,
 }: {
   r: any;
   owned: boolean;
   balance: number;
+  level?: number;
 }) {
   // status：idle=没买 / buying=正在买 / done=已买可下载
   const [status, setStatus] = useState<"idle" | "buying" | "done">(owned ? "done" : "idle");
   const [msg, setMsg] = useState("");
   const [payOpen, setPayOpen] = useState(false); // 大白话：是否展开了"选择支付方式"面板
+
+  // 🅲1：最终价（活动价→叠会员折扣）+ 是否在打折
+  const finalPrice = effectivePrice(r, level);
+  const onSale = isOnSale(r);
 
   function download() {
     if (!r.downloadUrl) return setMsg("这个资源还没有下载链接，联系站长补上～");
@@ -50,19 +58,24 @@ export default function ResourceCard({
   }
 
   const isFree = r.price === 0;
-  const canDownload = isFree || status === "done";
-
-  return (
+  const canDownload = isFree || status === "done";  return (
     <div style={{ border: "1px solid #eee", borderRadius: 14, overflow: "hidden",
       background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", display: "flex", flexDirection: "column" }}>
       {/* 封面区 */}
       <div style={{ height: 140, background: "linear-gradient(135deg,#6366f1,#a855f7)",
-        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, color: "#fff" }}>
+        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, color: "#fff", position: "relative" }}>
         {r.cover ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={r.cover} alt={r.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           r.title[0]
+        )}
+        {/* 🅲1 限时折扣角标 */}
+        {onSale && (
+          <span style={{ position: "absolute", top: 10, left: 10, background: "#dc2626", color: "#fff",
+            fontSize: 12, padding: "3px 10px", borderRadius: 999, fontWeight: 700 }}>
+            ⏰ 限时
+          </span>
         )}
       </div>
 
@@ -71,8 +84,13 @@ export default function ResourceCard({
           <span style={{ fontSize: 12, background: "#f0f0ff", color: "#6366f1", padding: "2px 8px", borderRadius: 999 }}>
             {r.category}
           </span>
-          <span style={{ fontSize: 15, fontWeight: 700, color: r.price === 0 ? "#16a34a" : "#f59e0b" }}>
-            {r.price === 0 ? "免费" : `¥${(r.price / 100).toFixed(1)}`}
+          <span style={{ fontSize: 15, fontWeight: 700, color: r.price === 0 ? "#16a34a" : (onSale ? "#dc2626" : "#f59e0b") }}>
+            {r.price === 0 ? "免费" : `¥${(finalPrice / 100).toFixed(1)}`}
+            {onSale && (
+              <span style={{ fontSize: 12, color: "#999", textDecoration: "line-through", fontWeight: 400, marginLeft: 6 }}>
+                ¥{(r.price / 100).toFixed(1)}
+              </span>
+            )}
           </span>
         </div>
 
@@ -91,7 +109,7 @@ export default function ResourceCard({
               <button onClick={() => buy("balance")} disabled={status === "buying"}
                 style={{ padding: "9px 0", border: "none", borderRadius: 8, background: "#6366f1",
                   color: "#fff", fontSize: 14, cursor: "pointer" }}>
-                余额支付 ¥{(r.price / 100).toFixed(1)}（余额 ¥{(balance / 100).toFixed(2)}）
+                余额支付 ¥{(finalPrice / 100).toFixed(1)}（余额 ¥{(balance / 100).toFixed(2)}）
               </button>
               <div style={{ display: "flex", gap: 6 }}>
                 <button onClick={() => buy("wechat")} disabled={status === "buying"}
@@ -113,7 +131,7 @@ export default function ResourceCard({
             <button onClick={() => setPayOpen(true)} disabled={status === "buying"}
               style={{ width: "100%", padding: "10px 0", border: "none", borderRadius: 8,
                 background: "#f59e0b", color: "#fff", fontSize: 15, cursor: "pointer" }}>
-              {status === "buying" ? "购买中..." : `¥${(r.price / 100).toFixed(1)} 购买`}
+              {status === "buying" ? "购买中..." : `¥${(finalPrice / 100).toFixed(1)} 购买`}
             </button>
           )}
           {msg && (

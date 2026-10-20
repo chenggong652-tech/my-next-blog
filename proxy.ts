@@ -28,7 +28,7 @@ export function proxy(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-    // 动作 3：防盗链——本地图片只许自己网站显示（别人网站引用 → 403）
+    // 动作 2.5：防盗链——本地图片只许自己网站显示（别人网站引用 → 403）
     const isImage =
     url.endsWith(".jpg") || url.endsWith(".png") || url.endsWith(".jpeg") || url.endsWith(".webp");
   if (isImage) {
@@ -40,11 +40,24 @@ export function proxy(req: NextRequest) {
     // 没来路（直接打开图片/手机看图）→ 放行（不误伤好人）
   }
   
-  // 动作 3：其他都正常放行
+  // 动作 3：推广认亲——链接带 ?ref=推广码 → 记 30 天 cookie（谁带你来的）
+  // 大白话：小王把推广链接发群里，小李点进来，链接上带着小王的码
+  // → 网站把小王的码存进小李浏览器 30 天 → 这 30 天小李买任何东西都算小王的业绩
+  const ref = req.nextUrl.searchParams.get("ref");
+  if (ref && /^[A-Z0-9]{4,12}$/.test(ref)) {
+    const res = NextResponse.next();
+    res.cookies.set("ref", ref, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 天
+    });
+    return res;
+  }
+
+  // 动作 4：其他都正常放行
   return NextResponse.next();
 }
-
-// 保安站岗的位置：图片/字体/图标/地图等"公用设施"不拦，其余全部过闸
 export const config = {
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest|sitemap.xml|rss.xml|robots.txt).*)",

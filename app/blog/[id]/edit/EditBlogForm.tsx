@@ -16,6 +16,9 @@ export default function EditBlogForm({
   blogPinned,
   blogCover,
   blogSeries,
+  blogSeoTitle,
+  blogSeoDescription,
+  blogKeywords,
 }: {
   blogId: string;
   blogTitle: string;
@@ -24,6 +27,9 @@ export default function EditBlogForm({
   blogPinned: boolean;
   blogCover: string;
   blogSeries: string;
+  blogSeoTitle: string;
+  blogSeoDescription: string;
+  blogKeywords: string;
 }) {
   // 和新建表单一样，用 useActionState 接收校验错误提示（先声明 state）
   const [state, formAction] = useActionState(updateBlog, {});
@@ -87,6 +93,36 @@ export default function EditBlogForm({
             name="series"
             defaultValue={blogSeries}
             placeholder="填了就能把文章归进一个系列，读者可以追更"
+            style={{ width: "100%", padding: "10px", marginTop: "6px", borderRadius: "8px", border: "1px solid #d1d5db", fontSize: "16px" }}
+          />
+        </div>
+
+        {/* 🅰️ A2：SEO 身份证（编辑时也能补/改） */}
+        <div>
+          <label style={{ fontWeight: "bold" }}>🔍 SEO 标题（可选，给搜索引擎看的加长版标题）</label>
+          <input
+            name="seoTitle"
+            defaultValue={blogSeoTitle}
+            placeholder="如：零基础用 AI 建站｜从 0 到能收钱的网站（全流程）"
+            style={{ width: "100%", padding: "10px", marginTop: "6px", borderRadius: "8px", border: "1px solid #d1d5db", fontSize: "16px" }}
+          />
+        </div>
+        <div>
+          <label style={{ fontWeight: "bold" }}>📝 SEO 简介（可选，一句话说清这篇讲啥）</label>
+          <textarea
+            name="seoDescription"
+            rows={2}
+            defaultValue={blogSeoDescription}
+            placeholder="如：不用懂代码，跟着一步步把 AI 网站搭起来并接上收款"
+            style={{ width: "100%", padding: "10px", marginTop: "6px", borderRadius: "8px", border: "1px solid #d1d5db", fontSize: "16px" }}
+          />
+        </div>
+        <div>
+          <label style={{ fontWeight: "bold" }}>🎯 关键词（可选，逗号分隔，如：AI建站,零基础,Next.js）</label>
+          <input
+            name="keywords"
+            defaultValue={blogKeywords}
+            placeholder="写 2-3 个词，逗号隔开"
             style={{ width: "100%", padding: "10px", marginTop: "6px", borderRadius: "8px", border: "1px solid #d1d5db", fontSize: "16px" }}
           />
         </div>

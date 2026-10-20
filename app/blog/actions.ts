@@ -31,6 +31,10 @@ export async function createBlog(
   const tags = formData.getAll("tags") as string[]; // 勾选的多个标签名
   const status = (formData.get("status") as string) || "published";
   const series = (formData.get("series") as string) || "";
+  // 🅰️ A2：SEO 三件套（不填就留空）
+  const seoTitle = (formData.get("seoTitle") as string) || "";
+  const seoDescription = (formData.get("seoDescription") as string) || "";
+  const keywords = (formData.get("keywords") as string) || "";
 
 
 
@@ -48,6 +52,9 @@ export async function createBlog(
       coverImage: coverCheck,
       status: status,
       series: series.trim() || null,
+      seoTitle: seoTitle.trim() || null,
+      seoDescription: seoDescription.trim() || null,
+      keywords: keywords.trim() || null,
       userId: session.user.id, // 记录作者是谁
       // 挂标签：勾选的标签名，数据库没有就自动创建（connectOrCreate）
       tags: {
@@ -80,6 +87,10 @@ export async function updateBlog(
   if (typeof coverCheck === "object") return { error: coverCheck.error };
   const status = (formData.get("status") as string) || "published";
   const series = (formData.get("series") as string) || "";
+  // 🅰️ A2：SEO 三件套（编辑时也能补/改）
+  const seoTitle = (formData.get("seoTitle") as string) || "";
+  const seoDescription = (formData.get("seoDescription") as string) || "";
+  const keywords = (formData.get("keywords") as string) || "";
 
   if (!title.trim()) return { error: "标题不能为空" };
   if (!content.trim()) return { error: "内容不能为空" };
@@ -108,6 +119,9 @@ export async function updateBlog(
       coverImage: coverCheck,
       status: status,
       series: series.trim() || null,
+      seoTitle: seoTitle.trim() || null,
+      seoDescription: seoDescription.trim() || null,
+      keywords: keywords.trim() || null,
     },
   });
   revalidatePath("/blog");
@@ -139,4 +153,44 @@ export async function deleteBlog(formData: FormData) {
   }
   revalidatePath("/blog");
   return { success: true, msg: "删除成功" };
+}
+
+// 🅰️ A1：AI 内容生产流水线——批量导入草稿（把 AI 产的一批文章一次存进草稿箱）
+export async function createBlogsBatch(
+  prevState: BlogFormState,
+  formData: FormData
+): Promise<BlogFormState & { count?: number }> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "请先登录" };
+
+  const raw = (formData.get("batch") as string) || "";
+  const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean); // 一行一篇
+
+  let ok = 0;
+  const errors: string[] = [];
+  for (const line of lines) {
+    // 约定格式：标题|||内容 （||| 是分隔符，告诉程序"这半行是标题、后半行是内容"）
+    const idx = line.indexOf("|||");
+    if (idx < 0) { errors.push(`「${line.slice(0, 20)}…」缺 ||| 分隔符`); continue; }
+    const title = line.slice(0, idx).trim();
+    const content = line.slice(idx + 3).trim();
+    if (title.length < 2 || content.length < 10) {
+      errors.push(`「${title.slice(0, 20)}」字数不够（标题≥2字、内容≥10字）`); continue;
+    }
+    await prisma.blog.create({
+      data: {
+        title,
+        content,
+        category: "未分类",
+        status: "draft", // 🔑 一律先进草稿箱，人工审核后再发布（这就是"流水线"的关键）
+        userId: session.user.id,
+      },
+    });
+    ok++; // 成功一篇，计数 +1
+  }
+  revalidatePath("/admin");
+  revalidatePath("/blog");
+  if (ok === 0) return { error: errors.join("；") || "没有导入任何文章" };
+  if (errors.length > 0) return { error: `成功 ${ok} 篇，跳过 ${errors.length} 篇：${errors.join("；")}` };
+  return { count: ok }; // 全成功：告诉页面"导入了 N 篇"
 }

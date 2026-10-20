@@ -44,6 +44,9 @@ model Blog {
   coverImage String? // 封面图片地址（可空：不填就不显示封面）
   status    String   @default("published") // 文章状态：published=已发布，draft=草稿
   series    String? // 所属系列/专栏名（可空：不属于任何系列）
+  seoTitle       String? // 🅰️ A2：SEO 标题（搜索引擎显示的加长版标题）
+  seoDescription String? // 🅰️ A2：SEO 简介（搜索结果里的一句话）
+  keywords       String? // 🅰️ A2：关键词（逗号分隔，告诉搜索引擎这篇给谁看）
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   userId    String
@@ -83,6 +86,8 @@ model User {
   balance       Int       @default(0) // 余额（分）：1元=100（第31课）
     level       Int       @default(1) // 会员等级 1~5（第33课）：消费越多升越高
   totalSpent  Int       @default(0) // 累计消费（分）：升级看的"经验值"
+  refCode      String?    @unique // 🅲2 推广码：别人点带这个码的链接进来，你赚佣金
+  commission   Int        @default(0) // 🅲2 佣金余额（分）：推广成交自动累积（可当钱用/提现）
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   failCount     Int       @default(0) // 第 X3 课：登录失败次数（防爆破）
@@ -99,7 +104,9 @@ model User {
   commentLikes CommentLike[] // 这个用户给哪些评论点过赞
   commentReplies CommentReply[] // 这个用户发的评论回复
   purchases Purchase[] // 这个用户买过哪些资源（第31课）
-  orders Order[] // 这个用户下过哪些订单（第32课）
+  orders Order[] @relation("BuyerOrders") // 这个用户买过哪些订单（第32课）
+  commissions Commission[] // 🅲2 我推广赚到的佣金记录
+  refOrders Order[] @relation("ReferralOrders") // 🅲2 我推广带来的订单（别人买，记我头上）
 }
 
 model Account {
@@ -294,6 +301,8 @@ model Resource {
   cover       String?  // 封面图（可空）
   description String   @db.Text // 简介：这个资源是啥、值在哪
   price       Int      @default(0) // 价格（分）：0=免费，990=9.9元
+  discountPrice Int?     // 🅲1 限时折扣价（分）：填了=有活动，空=按原价卖
+  discountEndAt DateTime? // 🅲1 折扣截止时间：过了这个点自动恢复原价
   downloadUrl String?  // 下载链接（付费/免费资源的网盘或直链）
   purchases Purchase[] // 谁买过这个资源（第31课）
   orders Order[] // 这个资源被下过哪些订单（第32课）
@@ -324,10 +333,25 @@ model Order {
   amount     Int      // 订单金额（分）
   status     String   @default("pending") // pending=待支付 / paid=已支付 / cancelled=已取消
   method     String   @default("balance") // balance=余额支付 / wechat=模拟微信 / alipay=模拟支付宝
+  refUserId  String?  // 🅲2 这笔订单是谁推广带来的（null=自然成交，没有推广员）
   createdAt  DateTime @default(now())
   paidAt     DateTime? // 什么时候付的款（空=还没付）
   resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation("BuyerOrders", fields: [userId], references: [id], onDelete: Cascade)
+  referrer   User?    @relation("ReferralOrders", fields: [refUserId], references: [id]) // 🅲2 推广员
+}
+
+// 🅲2 佣金记录表：谁通过我的推广链接买了啥，我赚了多少（推广中心明细用）
+model Commission {
+  id            String   @id @default(cuid())
+  userId        String   // 推广员（谁赚了这笔钱）
+  orderId       String   // 关联哪笔订单
+  buyerName     String   // 买家昵称（展示用，不用再查库）
+  resourceTitle String   // 买的是什么资源（展示用）
+  amount        Int      // 这笔佣金（分）：订单实付 × 20%
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId]) // 推广中心按推广员查佣金记录
 }
 
 

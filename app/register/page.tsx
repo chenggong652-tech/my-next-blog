@@ -4,6 +4,7 @@ import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import bcrypt from "bcryptjs";
+import { uniqueRefCode } from "@/lib/ref"; // 🅲2 注册自动发推广码
 
 type Props = {
   searchParams: Promise<{ error?: string }>;
@@ -49,12 +50,14 @@ export default async function RegisterPage({ searchParams }: Props) {
           // 3. 密码加密（bcrypt 加盐哈希，不存明文）
           const hashedPassword = await bcrypt.hash(password, 12);
 
-          // 4. 创建用户
+          // 4. 创建用户（🎲 自动发一张"推广名片"——唯一的推广码，别人点你的链接进来，你赚佣金）
+          const refCode = await uniqueRefCode(prisma);
           await prisma.user.create({
             data: {
               email,
               name: email.split("@")[0], // 默认昵称取邮箱前缀
               password: hashedPassword,
+              refCode, // 🅲2 推广码
             },
           });
 

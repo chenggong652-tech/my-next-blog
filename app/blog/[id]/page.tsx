@@ -92,15 +92,20 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     .replace(/\s+/g, " ")          // 多个空格/换行合并成一个空格
     .trim();
   // 截取正文前 60 个字当摘要，超过就加省略号
-  const description = plain.slice(0, 60) + (plain.length > 60 ? "…" : "");
+  const autoDescription = plain.slice(0, 60) + (plain.length > 60 ? "…" : "");
+  // 🅰️ A2：SEO 身份证——填了就优先用填的（seoTitle / seoDescription / keywords）
+  const seoTitle = blog.seoTitle || blog.title;
+  const description = blog.seoDescription || autoDescription;
+  const keywords = blog.keywords || "";
 
   return {
     // 标题加品牌后缀：分享/搜索显示"文章标题 | AizyBase"
-    title: `${blog.title} | AizyBase`,
+    title: `${seoTitle} | AizyBase`,
     description: description,
+    keywords: keywords || undefined,
     // 社交分享卡片：发微信/朋友圈时，对方看到的小卡片内容
     openGraph: {
-      title: blog.title,
+      title: seoTitle,
       description: description,
       type: "article",
       images: blog.coverImage ? [{ url: blog.coverImage }] : undefined,

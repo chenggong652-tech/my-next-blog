@@ -65,6 +65,8 @@ export default async function RootLayout({
           <Link href="/message" className="text-blue-600">留言板</Link>
           <Link href="/tags" className="text-blue-600">🏷️标签</Link>
           <Link href="/music" className="text-blue-600">🎵 音乐馆</Link>
+          <Link href="/tools" className="text-blue-600">🧰 AI工具</Link>
+          <Link href="/prompts" className="text-blue-600">📋 提示词</Link>
           <Link href="/resources" className="text-blue-600">🎁 资源库</Link>
           <Link href="/archive" className="text-blue-600">🗂️归档</Link>
 

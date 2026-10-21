@@ -79,8 +79,44 @@ export default async function HomePage() {
 
   return (
     <main style={{ maxWidth: "900px", margin: "40px auto", padding: "0 20px" }}>
-      <div style={{ textAlign: "center", marginBottom: "50px" }}>
-        <h1 className="home-title" style={{ fontSize: "44px", margin: 0 }}>
+      {/* ====== 🅶2 首屏：门面（用户第一眼，3 秒决定留不留） ====== */}
+      <div
+        style={{
+          textAlign: "center",
+          marginBottom: "50px",
+          position: "relative",
+          overflow: "hidden",
+          padding: "48px 20px 40px",
+          borderRadius: 24,
+          background: "linear-gradient(135deg, rgba(99,102,241,.12), rgba(168,85,247,.12))",
+          border: "1px solid var(--card-border)",
+        }}
+      >
+        {/* 光斑装饰（纯 CSS 假"灯光"：两颗模糊圆点，让背景不单调） */}
+        <div
+          style={{
+            position: "absolute",
+            top: -60,
+            left: -60,
+            width: 200,
+            height: 200,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(168,85,247,.25), transparent 70%)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            bottom: -80,
+            right: -40,
+            width: 220,
+            height: 220,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(99,102,241,.22), transparent 70%)",
+          }}
+        />
+
+        <h1 className="home-title" style={{ fontSize: "46px", margin: 0, position: "relative" }}>
           AizyBase{" "}
           <span
             style={{
@@ -92,18 +128,27 @@ export default async function HomePage() {
             AI 资源库
           </span>
         </h1>
-        <p style={{ color: "var(--text-light)", marginTop: 12, fontSize: 17 }}>
-          教程 · 工具 · 灵感，一站式收藏，跟着系列慢慢学
+        <p style={{ color: "var(--text-light)", marginTop: 12, fontSize: 17, position: "relative" }}>
+          教程 · 工具 · 提示词 · 音乐 —— 一站式 AI 学习乐园，跟着系列慢慢学
         </p>
+
+        {/* 三个大门：直通刚做好的页面（资源库/工具导航/提示词库） */}
         <div
           className="home-btns"
-          style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: 28 }}
+          style={{
+            display: "flex",
+            gap: "14px",
+            justifyContent: "center",
+            marginTop: 28,
+            position: "relative",
+            flexWrap: "wrap",
+          }}
         >
-          <Link href="/blog">
+          <Link href="/resources">
             <button
               style={{
-                padding: "12px 28px",
-                fontSize: 16,
+                padding: "12px 26px",
+                fontSize: 15,
                 borderRadius: "999px",
                 border: "none",
                 background: "linear-gradient(135deg,#6366f1,#a855f7)",
@@ -112,14 +157,14 @@ export default async function HomePage() {
                 fontWeight: 600,
               }}
             >
-              📚 浏览资源
+              🎁 逛资源库
             </button>
           </Link>
-          <Link href="/message">
+          <Link href="/tools">
             <button
               style={{
-                padding: "12px 28px",
-                fontSize: 16,
+                padding: "12px 26px",
+                fontSize: 15,
                 borderRadius: "999px",
                 border: "1px solid var(--card-border)",
                 background: "var(--card-bg)",
@@ -128,7 +173,23 @@ export default async function HomePage() {
                 fontWeight: 600,
               }}
             >
-              💬 留言交流
+              🧰 看 AI 工具
+            </button>
+          </Link>
+          <Link href="/prompts">
+            <button
+              style={{
+                padding: "12px 26px",
+                fontSize: 15,
+                borderRadius: "999px",
+                border: "1px solid var(--card-border)",
+                background: "var(--card-bg)",
+                color: "var(--text)",
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+            >
+              📋 抄提示词
             </button>
           </Link>
         </div>

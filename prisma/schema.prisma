@@ -354,6 +354,33 @@ model Commission {
   @@index([userId]) // 推广中心按推广员查佣金记录
 }
 
+// 🅵1 AI 工具导航表：导航页的"货架商品"——每个工具一张卡片
+model Tool {
+  id          String   @id @default(cuid())
+  name        String   // 工具名字（如 ChatGPT）
+  url         String   // 直达链接（官网地址）
+  description String   @db.Text // 一句话简介（告诉读者这工具干嘛的）
+  category    String   @default("其他") // 分类（如：AI对话/绘画/音乐/办公…）
+  icon        String?  // 图标（emoji 或图片地址；留空用默认 🧩）
+  featured    Boolean  @default(false) // 推荐位：true=摆在最前面
+  sortOrder   Int      @default(0) // 排序号：数字越小越靠前
+  createdAt   DateTime @default(now())
+  @@index([category]) // 按分类筛选导航页查询快
+}
+
+// 🅵2 提示词模板表：提示词库的"货架商品"——每个模板一张卡片
+model Prompt {
+  id         String   @id @default(cuid())
+  title      String   // 模板名（如：小红书爆款标题生成器）
+  prompt     String   @db.Text // 提示词正文（点复制就能用）
+  category   String   @default("其他") // 分类（如：写作/绘画/小红书/工作…）
+  featured   Boolean  @default(false) // 推荐位：true=摆最前面
+  useCount   Int      @default(0) // 被复制使用次数（热门口碑）
+  sortOrder  Int      @default(0) // 排序号：数字越小越靠前
+  createdAt  DateTime @default(now())
+  @@index([category])
+}
+
 
 
 

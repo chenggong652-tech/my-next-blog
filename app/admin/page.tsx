@@ -161,6 +161,54 @@ export default async function AdminPage() {
           🔞 敏感词库
         </a>
       </p>
+      <p style={{ margin: "10px 0 0" }}>
+        <a
+          href="/admin/orders"
+          style={{
+            display: "inline-block",
+            padding: "8px 16px",
+            borderRadius: 8,
+            background: "#16a34a",
+            color: "#fff",
+            textDecoration: "none",
+            fontSize: 14,
+          }}
+        >
+          🧾 订单管理
+        </a>
+      </p>
+      <p style={{ margin: "10px 0 0" }}>
+        <a
+          href="/admin/tools"
+          style={{
+            display: "inline-block",
+            padding: "8px 16px",
+            borderRadius: 8,
+            background: "#8b5cf6",
+            color: "#fff",
+            textDecoration: "none",
+            fontSize: 14,
+          }}
+        >
+          🧰 AI工具管理
+        </a>
+      </p>
+      <p style={{ margin: "10px 0 0" }}>
+        <a
+          href="/admin/prompts"
+          style={{
+            display: "inline-block",
+            padding: "8px 16px",
+            borderRadius: 8,
+            background: "#f59e0b",
+            color: "#fff",
+            textDecoration: "none",
+            fontSize: 14,
+          }}
+        >
+          📋 提示词管理
+        </a>
+      </p>
 
       {/* 统计卡片：一排 5 个数字 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "16px", marginTop: "20px" }}>
